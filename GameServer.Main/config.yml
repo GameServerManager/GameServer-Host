@@ -1,0 +1,7 @@
+﻿providerSettings:
+  userName: root
+  password: example
+loggingSettings:
+  loggingTest: placeholder
+daemonSettings:
+  daemonTest: placeholder

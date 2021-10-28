@@ -1,0 +1,18 @@
+﻿Name: MariaDB
+Comment: Debian Test
+Discription: Test Debian python insalled
+Image: Debian  
+InstalationScripts: 
+  ScriptCommand: apt-get update -y && apt-get install -y python
+  Entrypoint: bash
+StartScripts: 
+  ScriptCommand: python
+  Entrypoint: bash
+Variables:
+  name: Python Version
+  description: Python versiuon to install
+  env_variable: P_Version
+  default_value: "3.7"
+  user_viewable: true
+  user_editable: true
+  rules: nullable|string
