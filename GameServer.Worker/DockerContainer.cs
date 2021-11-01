@@ -6,12 +6,16 @@ using System.Threading.Tasks;
 using Docker.DotNet;
 using GameServer.Core;
 using GameServer.Core.Daemon;
+using GameServer.Core.Daemon.Config;
+using Newtonsoft.Json;
 
 namespace GameServer.Worker
 {
-    public class DockerContainer : IContainer, IDisposable
+    public partial class DockerContainer : IContainer, IDisposable
     {
+        private CancellationTokenSource _cancellation;
         private DockerClient client { get; }
+        private List<string> _stdoutCache { get; } = new List<string>();
 
         public string ID { get; }
 
@@ -25,13 +29,8 @@ namespace GameServer.Worker
         {
             this.client = client;
             ID = id;
-            _ = Update();
-        }
 
-        private async Task Update()
-        {
-            var container = await GetOwnContainer();
-
+            var container = GetOwnContainer().Result;
             Image = container.Image;
             ImageID = container.ImageID;
             Names = container.Names;
@@ -39,7 +38,29 @@ namespace GameServer.Worker
 
         public async Task Start()
         {
-            await client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters()); 
+            _cancellation = new CancellationTokenSource();
+
+            var stream = await client.Containers.AttachContainerAsync(ID, true, new Docker.DotNet.Models.ContainerAttachParameters()
+            {
+                Stream = true,
+                Stdin = true,
+                Stdout = true,
+                Stderr = true
+            });
+
+            MemoryStream stdin = null;
+            MemoryStream stdout= null;
+            MemoryStream stderr = null;
+            await stream.CopyOutputToAsync(stdin, stdout, stderr, _cancellation.Token);
+
+
+
+            await client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
+        }
+
+        private void onMessage(string msg)
+        {
+            _stdoutCache.Add($"{msg}");
         }
 
         public async Task Stop()
@@ -77,9 +98,29 @@ namespace GameServer.Worker
             return containerList.First();
         }
 
+        public async Task Exec(Script script)
+        {
+
+        }
+
         public void Dispose()
         {
             client.Dispose();
+        }
+
+        public async Task Install()
+        {
+
+        }
+
+        public async Task Update()
+        {
+
+        }
+
+        public async Task<string[]> GetLogs()
+        {
+            return _stdoutCache.ToArray();
         }
     }
 }

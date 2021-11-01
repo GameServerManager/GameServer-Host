@@ -1,18 +1,33 @@
-﻿Name: MariaDB
-Comment: Debian Test
-Discription: Test Debian python insalled
-Image: Debian  
-InstalationScripts: 
-  ScriptCommand: apt-get update -y && apt-get install -y python
-  Entrypoint: bash
-StartScripts: 
-  ScriptCommand: python
-  Entrypoint: bash
-Variables:
-  name: Python Version
-  description: Python versiuon to install
-  env_variable: P_Version
-  default_value: "3.7"
-  user_viewable: true
-  user_editable: true
-  rules: nullable|string
+﻿name: PythonDebian
+comment: Debian Test
+discription: Test Debian python insalled
+image: debian
+mounts:
+- hostPath: ./data
+  serverPath: /Home/Python/out
+- hostPath: ./test
+  serverPath: /Home/Python/out2
+ports:
+- hostPorts:
+  - 8080
+  serverPort: 8080
+- hostPorts:
+  - 81
+  serverPort: 81
+containerScripts:
+  instalationScript:
+    scriptCommand: apt-get update -y && apt-get install -y python$P_Version
+    entrypoint: bash
+  startScript:
+    scriptCommand: python
+    entrypoint: bash
+  updateScript:
+    scriptCommand: python
+    entrypoint: bash
+variables:
+- name: P_Version
+  description: Python version to install
+  envVariable: 3.7
+  defaultValue: 3.7
+  userViewable: true
+  userEditable: true

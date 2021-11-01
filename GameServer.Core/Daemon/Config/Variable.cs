@@ -8,6 +8,6 @@
         public string DefaultValue { get; set;}
         public bool UserViewable { get; set;}
         public bool UserEditable { get; set;}
-        public Rules rules { get; set; }
+        //public Rules rules { get; set; }
     }
 }

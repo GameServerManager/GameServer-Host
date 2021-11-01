@@ -19,29 +19,47 @@ namespace GameServer.Main
 {
     public class ServerWorker : IDisposable
     {
-        private Dictionary<string, Action<string[]>> CommandMap;
+        private readonly Dictionary<string, Action<string[]>> _commandMap;
         public bool Running { get; private set; } = true;
         public CommandQueue CommandQueue { get; }
-        private IDataProvider _dataProvider;
-        private IDaemonWorker _daemonWorker;
+        private readonly IDataProvider _dataProvider;
+        private readonly IDaemonWorker _daemonWorker;
         private IPerformanceLogger _performanceLogger;
 
         public ServerWorker(CommandQueue commandQueue, GameServerSettings settings)
         {
             CommandQueue = commandQueue;
-            CommandMap = new Dictionary<string, Action<string[]>>{
-                {"echo", Echo },
-                {"start", Start },
-                {"stop", Stop},
+            _commandMap = new Dictionary<string, Action<string[]>>{
+                {"cls", (args) => Console.Clear()},
+                {"clear", (args) => Console.Clear() },
                 {"server", Server },
+                {"log", ServerLog },
                 {"allserver", AllServer },
                 {"import", ImportServer },
-                {"exit", Exit }
+                {"start", Start },
+                {"stop", Stop},
+                {"exit", (args) => Running = false}
             };
 
             _dataProvider = new MongoDBProvider(settings.ProviderSettings);
             _daemonWorker = new DockerWorker(settings.DaemonSettings, _dataProvider);
             //_performanceLogger = new PerformanceLogger(settings.LoggingSettings, _dataProvider);
+        }
+
+        private async void ServerLog(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            var logs = await _daemonWorker.GetServerLogs(args[0]);
+
+            foreach (var log in logs)
+            {
+                Console.WriteLine(log);
+            }
         }
 
         private async void ImportServer(string[] args)
@@ -51,6 +69,7 @@ namespace GameServer.Main
                 DisplayHelp("only One Argument for help");
                 return;
             }
+
             var config = ContainerConfig.FromFile(args[0]);
             await _daemonWorker.ImportServer(config);
         }
@@ -133,7 +152,7 @@ namespace GameServer.Main
                 return ;
             }
                 
-            contains = CommandMap.TryGetValue(c.Name.ToLower(), out var action);
+            contains = _commandMap.TryGetValue(c.Name.ToLower(), out var action);
             if (!contains)
             {
                 DisplayHelp("Command not Found");
@@ -142,19 +161,10 @@ namespace GameServer.Main
             action.Invoke(c.Args.ToArray());
         }
 
-        private async void Exit(string[] args)
-        {
-            this.Running = false;
-        }
-        private void Echo(string[] args)
-        {
-            Console.WriteLine(string.Join(" ", args));
-        }
-
         public void Dispose()
         {
-            while(CommandQueue?.IsEmpty == false){}
-            Exit(null);
+            while (CommandQueue?.IsEmpty == false) { }
+            Running = false;
         }
     }
 }

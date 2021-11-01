@@ -10,10 +10,14 @@
 
   <ItemGroup>
     <None Remove="config.yml" />
+    <None Remove="ServerConfig.yaml" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="config.yml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ServerConfig.yaml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

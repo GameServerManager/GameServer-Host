@@ -53,7 +53,7 @@ namespace GameServer.Worker
                 if (!containers.Remove(containerRequest[i].ID))
                     continue;
 
-                var container = new DockerContainer(client, containerRequest[i].ID); 
+                var container = new DockerContainer(client, containerRequest[i].ID);
                 pool.Add(container.Start());
                 ContainerCache.Add(containerRequest[i].ID, container);
             }
@@ -75,15 +75,18 @@ namespace GameServer.Worker
             return await container.GetStatus();
         }
 
-        public Task<string> ImportServer(ContainerConfig id)
+        public async Task<IList<string>> ImportServer(ContainerConfig config)
         {
-            throw new NotImplementedException();
-
+            var warnings = DockerContainer.FromConfig(client, config, out var container);
+            ContainerCache.Add(container.ID, container);
+            await container.Start();
+            await container.Install();
+            return warnings;
         }
 
         public async Task StartServer(string id)
         {
-            var contains = ContainerCache.TryGetValue(id, out var container); 
+            var contains = ContainerCache.TryGetValue(id, out var container);
             if (contains)
                 await container.Start();
         }
@@ -105,9 +108,18 @@ namespace GameServer.Worker
             foreach (var id in ContainerCache.Keys)
             {
                 ContainerCache.Remove(id, out var container);
-                container?.Stop(); 
+                container?.Stop();
                 container?.Dispose();
             }
+        }
+
+        public async Task<string[]> GetServerLogs(string id)
+        {
+            var contains = ContainerCache.TryGetValue(id, out var container);
+            if (contains)
+                return await container.GetLogs();
+
+            return Array.Empty<string>();
         }
     }
 }

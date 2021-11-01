@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GameServer.Core.Daemon.Config;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +15,10 @@ namespace GameServer.Core.Daemon
 
         Task Start();
         Task Stop();
+        Task Install();
+        Task Update();
+        Task Exec(Script script);
         Task<ContainerStatus> GetStatus();
+        Task<string[]> GetLogs();
     }
 }

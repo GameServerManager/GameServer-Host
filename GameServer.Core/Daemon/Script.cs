@@ -1,4 +1,4 @@
-﻿namespace GameServer.Core.Daemon.Config
+﻿namespace GameServer.Core.Daemon
 {
     public class Script
     {
