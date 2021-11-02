@@ -17,7 +17,7 @@ namespace GameServer.Core.Daemon
         Task Stop();
         Task Install();
         Task Update();
-        Task Exec(Script script);
+        Task Exec(Script script, string name);
         Task<ContainerStatus> GetStatus();
         Task<string[]> GetLogs();
     }

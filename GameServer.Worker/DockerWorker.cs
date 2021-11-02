@@ -79,8 +79,8 @@ namespace GameServer.Worker
         {
             var warnings = DockerContainer.FromConfig(client, config, out var container);
             ContainerCache.Add(container.ID, container);
-            await container.Start();
             await container.Install();
+            await container.Start();
             return warnings;
         }
 
@@ -120,6 +120,13 @@ namespace GameServer.Worker
                 return await container.GetLogs();
 
             return Array.Empty<string>();
+        }
+
+        public async Task Update(string id)
+        {
+            var contains = ContainerCache.TryGetValue(id, out var container);
+            if (contains)
+                await container.Update();
         }
     }
 }

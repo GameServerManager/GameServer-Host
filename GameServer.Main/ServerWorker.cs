@@ -38,12 +38,24 @@ namespace GameServer.Main
                 {"import", ImportServer },
                 {"start", Start },
                 {"stop", Stop},
+                {"update", Update},
                 {"exit", (args) => Running = false}
             };
 
             _dataProvider = new MongoDBProvider(settings.ProviderSettings);
             _daemonWorker = new DockerWorker(settings.DaemonSettings, _dataProvider);
             //_performanceLogger = new PerformanceLogger(settings.LoggingSettings, _dataProvider);
+        }
+
+        private async void Update(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            await _daemonWorker.Update(args[0]);
         }
 
         private async void ServerLog(string[] args)

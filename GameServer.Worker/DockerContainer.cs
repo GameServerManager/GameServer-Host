@@ -14,8 +14,10 @@ namespace GameServer.Worker
     public partial class DockerContainer : IContainer, IDisposable
     {
         private CancellationTokenSource _cancellation;
+
         private DockerClient client { get; }
         private List<string> _stdoutCache { get; } = new List<string>();
+        private List<string> _stderrCache { get; } = new List<string>();
 
         public string ID { get; }
 
@@ -38,24 +40,9 @@ namespace GameServer.Worker
 
         public async Task Start()
         {
-            _cancellation = new CancellationTokenSource();
-
-            var stream = await client.Containers.AttachContainerAsync(ID, true, new Docker.DotNet.Models.ContainerAttachParameters()
-            {
-                Stream = true,
-                Stdin = true,
-                Stdout = true,
-                Stderr = true
-            });
-
-            MemoryStream stdin = null;
-            MemoryStream stdout= null;
-            MemoryStream stderr = null;
-            await stream.CopyOutputToAsync(stdin, stdout, stderr, _cancellation.Token);
-
-
-
             await client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
+
+            await ExecFromName("StartScript");
         }
 
         private void onMessage(string msg)
@@ -98,9 +85,39 @@ namespace GameServer.Worker
             return containerList.First();
         }
 
-        public async Task Exec(Script script)
+        public async Task Exec(Script script, string name)
         {
+            if (name is null)
+                name = Guid.NewGuid().ToString();   
 
+            GenerateScript(script, name, this.Names.First());
+
+            await ExecFromName(name);
+        }
+
+        private async Task ExecFromName(string name, string endpoint = "/bin/bash")
+        {
+            var createParams = new Docker.DotNet.Models.ContainerExecCreateParameters()
+            {
+                AttachStdin = true,
+                AttachStderr = true,
+                AttachStdout = true,
+                Tty = true,
+                Cmd = new List<string>() { endpoint, "-c", $"/Home/scripts/{name}.sh", }
+            };
+
+            var exec = await client.Exec.ExecCreateContainerAsync(ID, createParams);
+            //await client.Exec.StartContainerExecAsync(exec.ID);
+            var token = new CancellationTokenSource();
+
+
+            var stream = await client.Exec.StartAndAttachContainerExecAsync(exec.ID, true, token.Token);
+            var (stdout, stderr) = await stream.ReadOutputToEndAsync(token.Token);
+            if(!string.IsNullOrEmpty(stdout))
+                _stdoutCache.Add(stdout);
+
+            if(!string.IsNullOrEmpty(stderr))
+                _stderrCache.Add(stderr);
         }
 
         public void Dispose()
@@ -110,16 +127,22 @@ namespace GameServer.Worker
 
         public async Task Install()
         {
-
+            await client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
+            await ExecFromName("InstalationScript.sh");
         }
 
         public async Task Update()
         {
-
+            await ExecFromName("UpdateScript");
         }
 
         public async Task<string[]> GetLogs()
         {
+            var token = new CancellationTokenSource();
+            var stream = await client.Containers.GetContainerLogsAsync(ID, true, new Docker.DotNet.Models.ContainerLogsParameters() { ShowStderr = true, ShowStdout = true}, token.Token);
+
+            var (stdout, stderr) = await stream.ReadOutputToEndAsync(token.Token);
+
             return _stdoutCache.ToArray();
         }
     }

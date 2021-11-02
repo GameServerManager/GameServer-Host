@@ -46,8 +46,11 @@ namespace GameServer.Worker
 
             var param = new Docker.DotNet.Models.CreateContainerParameters()
             {
+                AttachStdin = true,
+                AttachStderr = true,
+                AttachStdout = true,
+                Tty = true,
                 HostConfig = hostConfig,
-                Tty = true
             };
 
             if (!string.IsNullOrEmpty(config.Image))
@@ -112,7 +115,7 @@ namespace GameServer.Worker
 
             List<string> binds = new()
             {
-                { $@"{ scriptDir }:/home/scripts" }
+                { $@"{ scriptDir }:/Home/scripts" }
             };
 
             IEnumerable<string> collection()

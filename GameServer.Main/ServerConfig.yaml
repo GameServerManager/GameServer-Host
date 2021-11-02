@@ -16,13 +16,13 @@ ports:
   serverPort: 81
 containerScripts:
   instalationScript:
-    scriptCommand: apt-get update -y && apt-get install -y python$P_Version
+    scriptCommand: touch /Home/Python/out/.InstallComplete && echo InstallComplete1 && sleep 100 && echo InstallComplete2 
     entrypoint: bash
   startScript:
-    scriptCommand: python
+    scriptCommand: touch /Home/Python/out/.StartComplete && echo StartComplete1 && sleep 100 && echo StartComplete2 
     entrypoint: bash
   updateScript:
-    scriptCommand: python
+    scriptCommand: touch /Home/Python/out/.Update && echo Update1 && sleep 100 && echo Update2 
     entrypoint: bash
 variables:
 - name: P_Version
