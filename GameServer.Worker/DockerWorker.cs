@@ -22,6 +22,7 @@ namespace GameServer.Worker
         {
 
             DataProvider = dataProvider;
+            DataProvider.Connect();
             client = new DockerClientConfiguration()
                 .CreateClient();
 
@@ -39,7 +40,7 @@ namespace GameServer.Worker
             // FetchDatabase(); get container info from Database
             // comparte database to existing and running container 
             // remove all containers not managed by GameServer
-            List<string> containers = new()
+            List<string> dbContainers = new()
             {
                 "44853dc05afbec1227f06d1302c7a167c99bf90660a0a1cb4bf03c6a6043647e",
                 "bfbc9e28f48964d0bde361857fba8981f0698d792541b58c2fefcf8121dccdb0",
@@ -50,12 +51,13 @@ namespace GameServer.Worker
 
             for (int i = 0; i < containerCount; i++)
             {
-                if (!containers.Remove(containerRequest[i].ID))
+                string id = containerRequest[i].ID;
+                if (!dbContainers.Remove(id))
                     continue;
 
-                var container = new DockerContainer(client, containerRequest[i].ID);
+                var container = new DockerContainer(client, id);
                 pool.Add(container.Start());
-                ContainerCache.Add(containerRequest[i].ID, container);
+                ContainerCache.Add(id, container);
             }
 
             // warning if containers still has entries
@@ -80,7 +82,6 @@ namespace GameServer.Worker
             var warnings = DockerContainer.FromConfig(client, config, out var container);
             ContainerCache.Add(container.ID, container);
             await container.Install();
-            await container.Start();
             return warnings;
         }
 
