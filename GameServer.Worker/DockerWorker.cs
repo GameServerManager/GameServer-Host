@@ -113,13 +113,16 @@ namespace GameServer.Worker
             }
         }
 
-        public async Task<string[]> GetServerLogs(string id)
+        public async Task<string> GetServerLogs(string id)
         {
             var contains = ContainerCache.TryGetValue(id, out var container);
             if (contains)
-                return await container.GetLogs();
+            {
+                (string stderr, string stdout) = await container.GetLogs();
+                return stdout;
+            }
 
-            return Array.Empty<string>();
+            return "";
         }
 
         public async Task Update(string id)

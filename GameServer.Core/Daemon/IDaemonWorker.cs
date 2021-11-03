@@ -14,7 +14,7 @@ namespace GameServer.Core.Daemon
         Task StopServer(string id);
         Task<IContainer> GetServer(string id);
         Task<IContainer[]> GetAllServer();
-        Task<string[]> GetServerLogs(string v);
-        Task Update(string v);
+        Task<string> GetServerLogs(string id);
+        Task Update(string id);
     }
 }

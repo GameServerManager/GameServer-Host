@@ -15,9 +15,9 @@ namespace GameServer.Worker
     {
         private CancellationTokenSource _cancellation;
 
-        private DockerClient client { get; }
-        private List<string> _stdoutCache { get; } = new List<string>();
-        private List<string> _stderrCache { get; } = new List<string>();
+        private DockerClient _client { get; }
+        private string _stdoutCache { get; set;} = "" ;
+        private string _stderrCache { get; set; } = "" ;
 
         public string ID { get; }
 
@@ -29,7 +29,7 @@ namespace GameServer.Worker
 
         public DockerContainer(DockerClient client, string id)
         {
-            this.client = client;
+            this._client = client;
             ID = id;
 
             var container = GetOwnContainer().Result;
@@ -40,19 +40,14 @@ namespace GameServer.Worker
 
         public async Task Start()
         {
-            await client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
+            await _client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
 
             await ExecFromName("StartScript");
         }
 
-        private void onMessage(string msg)
-        {
-            _stdoutCache.Add($"{msg}");
-        }
-
         public async Task Stop()
         {
-            await client.Containers.StopContainerAsync(ID,new Docker.DotNet.Models.ContainerStopParameters());
+            await _client.Containers.StopContainerAsync(ID,new Docker.DotNet.Models.ContainerStopParameters());
         }
 
         public async Task<ContainerStatus> GetStatus()
@@ -68,7 +63,7 @@ namespace GameServer.Worker
 
         private async Task<Docker.DotNet.Models.ContainerListResponse> GetOwnContainer()
         {
-            var containerList = await client.Containers.ListContainersAsync(new Docker.DotNet.Models.ContainersListParameters()
+            var containerList = await _client.Containers.ListContainersAsync(new Docker.DotNet.Models.ContainersListParameters()
             {
                 Filters = new Dictionary<string, IDictionary<string, bool>>
                 {
@@ -106,29 +101,37 @@ namespace GameServer.Worker
                 Cmd = new List<string>() { endpoint, "-c", $"/Home/scripts/{name}.sh", }
             };
 
-            var exec = await client.Exec.ExecCreateContainerAsync(ID, createParams);
+            var exec = await _client.Exec.ExecCreateContainerAsync(ID, createParams);
             //await client.Exec.StartContainerExecAsync(exec.ID);
             var token = new CancellationTokenSource();
 
 
-            var stream = await client.Exec.StartAndAttachContainerExecAsync(exec.ID, true, token.Token);
-            var (stdout, stderr) = await stream.ReadOutputToEndAsync(token.Token);
-            if(!string.IsNullOrEmpty(stdout))
-                _stdoutCache.Add(stdout);
+            var stream = await _client.Exec.StartAndAttachContainerExecAsync(exec.ID, true, token.Token);
 
-            if(!string.IsNullOrEmpty(stderr))
-                _stderrCache.Add(stderr);
+            var buffer = new byte[1];
+            var offset = 0;
+            MultiplexedStream.ReadResult res;
+
+            do
+            {
+                res = await stream.ReadOutputAsync(buffer, offset, 1, token.Token);
+
+                if (res.Count != 0)
+                    _stdoutCache += System.Text.Encoding.Default.GetString(buffer);
+
+            } while (!res.EOF);
+
         }
 
         public void Dispose()
         {
-            client.Dispose();
+            _client.Dispose();
         }
 
         public async Task Install()
         {
-            await client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
-            await ExecFromName("InstalationScript.sh");
+            await _client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
+            await ExecFromName("InstalationScript");
         }
 
         public async Task Update()
@@ -136,14 +139,9 @@ namespace GameServer.Worker
             await ExecFromName("UpdateScript");
         }
 
-        public async Task<string[]> GetLogs()
+        public async Task<(string stderr, string stdout)> GetLogs()
         {
-            var token = new CancellationTokenSource();
-            var stream = await client.Containers.GetContainerLogsAsync(ID, true, new Docker.DotNet.Models.ContainerLogsParameters() { ShowStderr = true, ShowStdout = true}, token.Token);
-
-            var (stdout, stderr) = await stream.ReadOutputToEndAsync(token.Token);
-
-            return _stdoutCache.ToArray();
+            return (_stderrCache, _stdoutCache);
         }
     }
 }

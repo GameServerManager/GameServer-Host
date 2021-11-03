@@ -68,10 +68,7 @@ namespace GameServer.Main
 
             var logs = await _daemonWorker.GetServerLogs(args[0]);
 
-            foreach (var log in logs)
-            {
-                Console.WriteLine(log);
-            }
+            Console.WriteLine(logs);
         }
 
         private async void ImportServer(string[] args)
