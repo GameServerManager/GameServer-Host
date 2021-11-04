@@ -1,21 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Docker.DotNet;
-using GameServer.Core;
+﻿using Docker.DotNet;
 using GameServer.Core.Daemon;
 using GameServer.Core.Daemon.Config;
-using Newtonsoft.Json;
 
 namespace GameServer.Worker
 {
     public partial class DockerContainer : IServer, IDisposable
     {
         private DockerClient Client { get; }
-        private string StdoutCache { get; set;} = "" ;
-        private string StderrCache { get; set; } = "" ;
+        private string StdoutCache { get; set; } = "";
+        private string StderrCache { get; set; } = "";
 
         public string ID { get; }
 
@@ -27,7 +20,7 @@ namespace GameServer.Worker
 
         public DockerContainer(DockerClient client, string id)
         {
-            this.Client = client;
+            Client = client;
             ID = id;
 
             var container = GetOwnContainer().Result;
@@ -45,7 +38,7 @@ namespace GameServer.Worker
 
         public async Task Stop()
         {
-            await Client.Containers.StopContainerAsync(ID,new Docker.DotNet.Models.ContainerStopParameters());
+            await Client.Containers.StopContainerAsync(ID, new Docker.DotNet.Models.ContainerStopParameters());
         }
 
         public async Task<ServerStatus> GetStatus()
@@ -81,7 +74,7 @@ namespace GameServer.Worker
         public async Task Exec(Script script, string name)
         {
             if (name is null)
-                name = Guid.NewGuid().ToString();   
+                name = Guid.NewGuid().ToString();
 
             GenerateScript(script, name, this.Names.First());
 

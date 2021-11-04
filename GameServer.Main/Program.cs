@@ -10,9 +10,9 @@ void main()
     var queue = new CommandQueue();
 
     ServerWorker serverWorker = new(queue, GameServerSettings.FromFile(@".\config.yml"));
-    
+
     Thread t = new(() => serverWorker.Start());
-    
+
     t.Start();
     do
     {
@@ -25,6 +25,6 @@ void main()
             Console.WriteLine(e);
         }
     } while (serverWorker.Running);
-    
+
     t.Join();
 }

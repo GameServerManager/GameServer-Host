@@ -1,19 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Docker.DotNet;
-using System.Collections.Generic;
-using GameServer.Core;
-using GameServer.Core.Command;
-using GameServer.Core.Database;
-using GameServer.Core.Settings;
-using GameServer.Worker;
-using GameServer.Data;
+﻿using GameServer.Core.Command;
 using GameServer.Core.Daemon;
-using GameServer.Core.Logger;
 using GameServer.Core.Daemon.Config;
+using GameServer.Core.Database;
+using GameServer.Core.Logger;
+using GameServer.Core.Settings;
+using GameServer.Data;
+using GameServer.Worker;
 
 namespace GameServer.Main
 {
@@ -136,7 +128,7 @@ namespace GameServer.Main
                 DisplayHelp("only One Argument for help");
                 return;
             }
-             
+
             await _daemonWorker.StartServer(args[0]);
         }
 
@@ -158,14 +150,14 @@ namespace GameServer.Main
             if (String.IsNullOrEmpty(c.Name))
             {
                 DisplayHelp("Command was empty");
-                return ;
+                return;
             }
-                
+
             contains = _commandMap.TryGetValue(c.Name.ToLower(), out var action);
             if (!contains)
             {
                 DisplayHelp("Command not Found");
-                return ;
+                return;
             }
             action.Invoke(c.Args.ToArray());
         }

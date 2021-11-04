@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace GameServer.Core.Settings
 {
@@ -11,6 +6,6 @@ namespace GameServer.Core.Settings
     {
         [DefaultValue(true)]
         public string DaemonTest { get; set; } = "testDaemon";
-        public ContainerSettings ContainerSettings { get; set; } 
+        public ContainerSettings ContainerSettings { get; set; }
     }
 }

@@ -1,12 +1,7 @@
 ﻿using GameServer.Core.Database;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MongoDB.Driver;
 using GameServer.Core.Settings;
 using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
 
 namespace GameServer.Data
 {

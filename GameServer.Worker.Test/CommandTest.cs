@@ -1,6 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using GameServer.Core;
 using GameServer.Core.Command;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GameServer.Test
 {
@@ -57,7 +56,7 @@ namespace GameServer.Test
             Assert.AreEqual(command.Name, "testCommand");
             Assert.AreEqual(command.Args.Count, 3);
             Assert.AreEqual(command.Args[0], "arg1");
-            Assert.AreEqual(command.Args[1], "ar\"g2 arg3"); 
+            Assert.AreEqual(command.Args[1], "ar\"g2 arg3");
             Assert.AreEqual(command.Args[2], "realArg4");
         }
     }
