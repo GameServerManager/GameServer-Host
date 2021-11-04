@@ -10,10 +10,10 @@ namespace GameServer.Core.Daemon
     public interface IDaemonWorker : IDisposable
     {
         Task StartServer(string id);
-        Task<IList<string>> ImportServer(ContainerConfig id);
+        Task<IList<string>> ImportServer(ServerConfig id);
         Task StopServer(string id);
-        Task<IContainer> GetServer(string id);
-        Task<IContainer[]> GetAllServer();
+        Task<IServer> GetServer(string id);
+        Task<IServer[]> GetAllServer();
         Task<string> GetServerLogs(string id);
         Task Update(string id);
     }

@@ -1,24 +1,19 @@
-﻿using GameServer.Core.Daemon;
+﻿using Docker.DotNet;
+using GameServer.Core.Daemon;
 using GameServer.Core.Daemon.Config;
 using GameServer.Core.Database;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Docker.DotNet;
 using GameServer.Core.Settings;
 
 namespace GameServer.Worker
 {
     public class DockerWorker : IDaemonWorker
     {
-        Dictionary<string, DockerContainer> ContainerCache = new Dictionary<string, DockerContainer>();
-        private DockerClient client;
+        readonly Dictionary<string, DockerContainer> ContainerCache = new();
+        private readonly DockerClient client;
 
-        public IDataProvider DataProvider { get; }
+        public IDaemonDataProvider DataProvider { get; }
 
-        public DockerWorker(DaemonSettings settings, IDataProvider dataProvider)
+        public DockerWorker(DaemonSettings settings, IDaemonDataProvider dataProvider)
         {
 
             DataProvider = dataProvider;
@@ -65,19 +60,24 @@ namespace GameServer.Worker
             await Task.WhenAll(pool);
         }
 
-        public async Task<IContainer> GetServer(string id)
+        public async Task<IServer> GetServer(string id)
         {
             var contains = ContainerCache.TryGetValue(id, out var container);
+            if (!contains)
+                return null;
             return container;
         }
 
-        public async Task<ContainerStatus> GetServerStatus(string id)
+        public async Task<ServerStatus> GetServerStatus(string id)
         {
             var contains = ContainerCache.TryGetValue(id, out var container);
-            return await container.GetStatus();
+            if (!contains)
+                return null;
+            
+            return await container.GetStatus(); 
         }
 
-        public async Task<IList<string>> ImportServer(ContainerConfig config)
+        public async Task<IList<string>> ImportServer(ServerConfig config)
         {
             var warnings = DockerContainer.FromConfig(client, config, out var container);
             ContainerCache.Add(container.ID, container);
@@ -92,7 +92,7 @@ namespace GameServer.Worker
                 await container.Start();
         }
 
-        public async Task<IContainer[]> GetAllServer()
+        public async Task<IServer[]> GetAllServer()
         {
             return ContainerCache.Values.ToArray();
         }
@@ -119,7 +119,7 @@ namespace GameServer.Worker
             var contains = ContainerCache.TryGetValue(id, out var container);
             if (contains)
             {
-                (string stderr, string stdout) = await container.GetLogs();
+                (_, string stdout) = await container.GetLogs();
                 return stdout;
             }
 

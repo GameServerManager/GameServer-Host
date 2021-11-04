@@ -11,7 +11,7 @@ namespace GameServer.Worker
 {
     partial class DockerContainer
     {
-        public static IList<string> FromConfig(DockerClient client, ContainerConfig config, out DockerContainer container)
+        public static IList<string> FromConfig(DockerClient client, ServerConfig config, out DockerContainer container)
         {
             var binds = ConvertMountConfig(config);
 
@@ -86,7 +86,7 @@ namespace GameServer.Worker
             return ports;
         }
 
-        private static void ProcessScripts(ContainerConfig config)
+        private static void ProcessScripts(ServerConfig config)
         {
             GenerateScript(config.ContainerScripts.StartScript, "StartScript", config.Name);
             GenerateScript(config.ContainerScripts.UpdateScript, "UpdateScript", config.Name);
@@ -102,7 +102,7 @@ namespace GameServer.Worker
             File.WriteAllText(scriptPath, script.ScriptCommand);
         }
 
-        private static List<string> ConvertMountConfig(ContainerConfig config)
+        private static List<string> ConvertMountConfig(ServerConfig config)
         {
             string envVar = GetServerRootPath();
 

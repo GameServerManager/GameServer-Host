@@ -2,7 +2,7 @@
 
 namespace GameServer.Core.Daemon.Config
 {
-    public class ContainerScripts
+    public class ServerScripts
     {
 
         [DefaultValue(true)]

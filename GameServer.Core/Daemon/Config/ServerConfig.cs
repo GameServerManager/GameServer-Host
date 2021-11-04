@@ -9,7 +9,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace GameServer.Core.Daemon.Config
 {
-    public class ContainerConfig
+    public class ServerConfig
     {
         public string Name { get; set; }
         public string Comment { get; set; }
@@ -23,12 +23,12 @@ namespace GameServer.Core.Daemon.Config
         public PortMap[] Ports { get; set; } = null;
 
         [DefaultValue(true)]
-        public ContainerScripts ContainerScripts { get; set; } = null;
+        public ServerScripts ContainerScripts { get; set; } = null;
 
         [DefaultValue(true)]
-        public Variable[] Variables { get; set; } = new Variable[0];
+        public Variable[] Variables { get; set; } = Array.Empty<Variable>();
 
-        public static ContainerConfig FromFile(string path)
+        public static ServerConfig FromFile(string path)
         {
             var deserializer = new DeserializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -36,7 +36,7 @@ namespace GameServer.Core.Daemon.Config
 
             //yml contains a string containing your YAML
             var yaml = File.ReadAllText(path);
-            return deserializer.Deserialize<ContainerConfig>(yaml);
+            return deserializer.Deserialize<ServerConfig>(yaml);
         }
 
         public static void ToFile(string path)
@@ -45,7 +45,7 @@ namespace GameServer.Core.Daemon.Config
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .Build();
 
-            ContainerConfig config = new()
+            ServerConfig config = new()
             {
                 Name = "TestName",
                 Comment = "TestComment",

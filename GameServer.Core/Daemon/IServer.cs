@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace GameServer.Core.Daemon
 {
-    public interface IContainer
+    public interface IServer
     {
         string ID { get; }
 
@@ -18,7 +18,7 @@ namespace GameServer.Core.Daemon
         Task Install();
         Task Update();
         Task Exec(Script script, string name);
-        Task<ContainerStatus> GetStatus();
+        Task<ServerStatus> GetStatus();
         Task<(string stderr, string stdout)> GetLogs();
     }
 }

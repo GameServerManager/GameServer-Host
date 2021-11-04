@@ -22,9 +22,9 @@ namespace GameServer.Main
         private readonly Dictionary<string, Action<string[]>> _commandMap;
         public bool Running { get; private set; } = true;
         public CommandQueue CommandQueue { get; }
-        private readonly IDataProvider _dataProvider;
+        private readonly IDaemonDataProvider _dataProvider;
         private readonly IDaemonWorker _daemonWorker;
-        private IPerformanceLogger _performanceLogger;
+        private readonly IPerformanceLogger _performanceLogger;
 
         public ServerWorker(CommandQueue commandQueue, GameServerSettings settings)
         {
@@ -79,7 +79,7 @@ namespace GameServer.Main
                 return;
             }
 
-            var config = ContainerConfig.FromFile(args[0]);
+            var config = ServerConfig.FromFile(args[0]);
             await _daemonWorker.ImportServer(config);
         }
 
