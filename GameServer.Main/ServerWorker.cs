@@ -26,6 +26,7 @@ namespace GameServer.Main
                 {"clear", (args) => Console.Clear() },
                 {"server", Server },
                 {"log", ServerLog },
+                {"attach", Attach },
                 {"allserver", AllServer },
                 {"import", ImportServer },
                 {"start", Start },
@@ -37,6 +38,17 @@ namespace GameServer.Main
             _dataProvider = new MongoDBProvider(settings.ProviderSettings);
             _daemonWorker = new DockerWorker(settings.DaemonSettings, _dataProvider);
             //_performanceLogger = new PerformanceLogger(settings.LoggingSettings, _dataProvider);
+        }
+
+        private void Attach(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            _daemonWorker.AttachServer(args[0]);
         }
 
         private async void Update(string[] args)

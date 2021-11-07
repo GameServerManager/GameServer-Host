@@ -18,6 +18,8 @@ namespace GameServer.Worker
 
         public string ImageID { get; set; }
 
+        public event IServer.NewOutHandler NewOutStreamMessage;
+
         public DockerContainer(DockerClient client, string id)
         {
             Client = client;
@@ -27,6 +29,20 @@ namespace GameServer.Worker
             Image = container.Image;
             ImageID = container.ImageID;
             Names = container.Names;
+
+            NewOutStreamMessage += OnOutStreamMessage;
+        }
+
+        private void OnOutStreamMessage(object sender, OutEventArgs e)
+        {
+            if (e.Target == OutEventArgs.TargetStream.StandardOut)
+            {
+                StdoutCache += e.Message;
+            }
+            else if (e.Target == OutEventArgs.TargetStream.StandardError)
+            {
+                StderrCache += e.Message;
+            }
         }
 
         public async Task Start()
@@ -108,8 +124,7 @@ namespace GameServer.Worker
                 res = await stream.ReadOutputAsync(buffer, offset, 1, token.Token);
 
                 if (res.Count != 0)
-                    StdoutCache += System.Text.Encoding.Default.GetString(buffer);
-
+                    NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString()));
             } while (!res.EOF);
 
         }

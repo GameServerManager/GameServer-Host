@@ -10,6 +10,7 @@ namespace GameServer.Data
     {
         private readonly string _connectionString;
         private MongoClient _dbClient;
+        private object AppenLock = new object ();
         private readonly string ServerCollectionName = "ServerEntitys";
         private readonly string ServerDatabaseName = "Server";
         private readonly string LoggerDatabaseName = "Logger";
@@ -65,20 +66,40 @@ namespace GameServer.Data
 
         }
 
-        public async Task UpdateServer(string id, Func<ServerEntity, ServerEntity> p)
+        public async Task AppendLog(string id, string message)
         {
-            var a = this;
-            var server = await ServerByID(id);
+            var db = _dbClient.GetDatabase(ServerDatabaseName);
+            var collection = db.GetCollection<ServerEntity>(ServerCollectionName);
+            var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID, id);
 
-            var modifyServer = p(server);
+            //var p = new BsonDocument[]
+            //{
+            //    new BsonDocument { 
+            //        { "$set", new BsonDocument("Log", new BsonDocument { 
+            //            { "$concat", new BsonDocument("$Log", message)} 
+            //        })} 
+            //    }
+            //};
+            var p = new BsonDocument[]
+            {
+                BsonDocument.Parse(
+@"
+{ 
+    $set: {
+        Log:
+            { 
+            $concat:[ '$Log', '" + message + @"' ] 
+        }
+    }
+}")
+            };
 
-            await SaveServer(modifyServer);
+            var update = Builders<ServerEntity>.Update.Pipeline(p);
+            await collection.UpdateOneAsync(filter, update);
         }
 
         private void InitLoggerDatabase()
         {
-
-
             var db = _dbClient.GetDatabase(LoggerDatabaseName);
         }
 
