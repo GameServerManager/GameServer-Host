@@ -147,7 +147,7 @@ namespace GameServer.Main
         {
             var c = new Command(e.Command);
             var contains = false;
-            if (String.IsNullOrEmpty(c.Name))
+            if (string.IsNullOrEmpty(c.Name))
             {
                 DisplayHelp("Command was empty");
                 return;

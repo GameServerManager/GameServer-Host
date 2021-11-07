@@ -130,7 +130,7 @@ namespace GameServer.Worker
             await ExecFromName("UpdateScript");
         }
 
-        public async Task<(string stderr, string stdout)> GetLogs()
+        public (string stderr, string stdout) GetLogs()
         {
             return (StderrCache, StdoutCache);
         }

@@ -1,5 +1,6 @@
 ﻿using GameServer.Core.Database;
 using GameServer.Core.Settings;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
@@ -9,15 +10,18 @@ namespace GameServer.Data
     {
         private readonly string _connectionString;
         private MongoClient _dbClient;
+        private readonly string ServerCollectionName = "ServerEntitys";
+        private readonly string ServerDatabaseName = "Server";
+        private readonly string LoggerDatabaseName = "Logger";
 
         public MongoDBProvider(DataProviderSettings settings)
         {
             _connectionString = $"mongodb://{settings.UserName}:{settings.Password}@{settings.Host}:{settings.Port}/";
+            _dbClient = new MongoClient(_connectionString);
         }
 
         public void Connect()
         {
-            _dbClient = new MongoClient(_connectionString);
             InitLoggerDatabase();
             InitServerDatabase();
         }
@@ -32,52 +36,61 @@ namespace GameServer.Data
             Disconnect();
         }
 
-        void IDatabaseProvider.Connect()
+        public async Task<IEnumerable<string>> GetAllServerID()
         {
-            throw new NotImplementedException();
+            var db = _dbClient.GetDatabase(ServerDatabaseName);
+            var collection = db.GetCollection<ServerEntity>(ServerCollectionName);
+
+            var server = await collection.FindAsync(new BsonDocument());
+            var a = await server.ToListAsync();
+            return a.Select(s => s.ID);
         }
 
-        void IDatabaseProvider.Disconnect()
+        public async Task SaveServer(ServerEntity server)
         {
-            throw new NotImplementedException();
+            var db = _dbClient.GetDatabase(ServerDatabaseName);
+            var collection = db.GetCollection<ServerEntity>(ServerCollectionName);
+            await collection.InsertOneAsync(server);
         }
 
-        void IDisposable.Dispose()
+        public async Task<ServerEntity> ServerByID(string id)
         {
-            throw new NotImplementedException();
+            var db = _dbClient.GetDatabase(ServerDatabaseName);
+            var collection = db.GetCollection<ServerEntity>(ServerCollectionName);
+
+            var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID, id);
+
+            var server = await collection.FindAsync(filter);
+            return await server.FirstAsync();
+
         }
 
-        Task<List<string>> IDaemonDataProvider.GetAllServerID()
+        public async Task UpdateServer(string id, Func<ServerEntity, ServerEntity> p)
         {
-            throw new NotImplementedException();
+            var a = this;
+            var server = await ServerByID(id);
+
+            var modifyServer = p(server);
+
+            await SaveServer(modifyServer);
         }
 
         private void InitLoggerDatabase()
         {
-            BsonClassMap.RegisterClassMap<ServerEntity>();
 
 
-            var db = _dbClient.GetDatabase("Server");
+            var db = _dbClient.GetDatabase(LoggerDatabaseName);
         }
 
         private void InitServerDatabase()
         {
-            var db = _dbClient.GetDatabase("Server");
-        }
+            BsonClassMap.RegisterClassMap<ServerEntity>(cm =>
+            {
+                cm.AutoMap();
+                cm.SetIdMember(cm.GetMemberMap(c => c.ID));
+            });
 
-        Task IDaemonDataProvider.SaveServer(string id)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task<IServerEntity> IDaemonDataProvider.ServerByID(string id)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task IDaemonDataProvider.UpdateServer(string id)
-        {
-            throw new NotImplementedException();
+            var db = _dbClient.GetDatabase(ServerDatabaseName);
         }
     }
 }

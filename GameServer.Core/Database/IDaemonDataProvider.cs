@@ -2,9 +2,9 @@
 {
     public interface IDaemonDataProvider : IDatabaseProvider, IDisposable
     {
-        Task<List<string>> GetAllServerID();
-        Task<IServerEntity> ServerByID(string id);
-        Task SaveServer(string id);
-        Task UpdateServer(string id);
+        Task<IEnumerable<string>> GetAllServerID();
+        Task<ServerEntity> ServerByID(string id);
+        Task SaveServer(ServerEntity server);
+        Task UpdateServer(string id, Func<ServerEntity, ServerEntity> p);
     }
 }

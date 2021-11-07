@@ -17,7 +17,6 @@ namespace GameServer.Worker
         {
 
             DataProvider = dataProvider;
-            DataProvider.Connect();
             client = new DockerClientConfiguration()
                 .CreateClient();
 
@@ -35,12 +34,14 @@ namespace GameServer.Worker
             // FetchDatabase(); get container info from Database
             // comparte database to existing and running container 
             // remove all containers not managed by GameServer
-            List<string> dbContainers = new()
-            {
-                "44853dc05afbec1227f06d1302c7a167c99bf90660a0a1cb4bf03c6a6043647e",
-                "bfbc9e28f48964d0bde361857fba8981f0698d792541b58c2fefcf8121dccdb0",
-                "fdf99e181c6e5b6751918b58134b19b1caf46a07dadf35e83320226bd5d45f20"
-            };
+            //List<string> dbContainers = new()
+            //{
+            //    "44853dc05afbec1227f06d1302c7a167c99bf90660a0a1cb4bf03c6a6043647e",
+            //    "bfbc9e28f48964d0bde361857fba8981f0698d792541b58c2fefcf8121dccdb0",
+            //    "fdf99e181c6e5b6751918b58134b19b1caf46a07dadf35e83320226bd5d45f20"
+            //};
+
+            var dbContainers = (await DataProvider.GetAllServerID()).ToList();
 
             List<Task> pool = new();
 
@@ -48,13 +49,21 @@ namespace GameServer.Worker
             {
                 string id = containerRequest[i].ID;
                 if (!dbContainers.Remove(id))
+                {
+                    Console.WriteLine($"[Warning] Not in Database: {id}");
                     continue;
+                }
 
                 var container = new DockerContainer(client, id);
+                
                 pool.Add(container.Start());
                 ContainerCache.Add(id, container);
             }
 
+            foreach (var notTraced in dbContainers)
+            {
+                Console.WriteLine($"[Warning] Not Tracked Import Again{notTraced}");
+            }
             // warning if containers still has entries
 
             await Task.WhenAll(pool);
@@ -81,6 +90,7 @@ namespace GameServer.Worker
         {
             var warnings = DockerContainer.FromConfig(client, config, out var container);
             ContainerCache.Add(container.ID, container);
+            await DataProvider.SaveServer(new ServerEntity(container.ID) { Config = config, Log = "" }) ;
             await container.Install();
             return warnings;
         }
@@ -117,13 +127,11 @@ namespace GameServer.Worker
         public async Task<string> GetServerLogs(string id)
         {
             var contains = ContainerCache.TryGetValue(id, out var container);
-            if (contains)
-            {
-                (_, string stdout) = await container.GetLogs();
-                return stdout;
-            }
+            if (!contains)
+                throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
 
-            return "";
+            (_, string stdout) = container.GetLogs();
+            return stdout;
         }
 
         public async Task Update(string id)
