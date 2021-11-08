@@ -5,6 +5,7 @@ using GameServer.Core.Database;
 using GameServer.Core.Logger;
 using GameServer.Core.Settings;
 using GameServer.Data;
+using GameServer.Logger;
 using GameServer.Worker;
 
 namespace GameServer.Main
@@ -14,7 +15,7 @@ namespace GameServer.Main
         private readonly Dictionary<string, Action<string[]>> _commandMap;
         public bool Running { get; private set; } = true;
         public CommandQueue CommandQueue { get; }
-        private readonly IDaemonDataProvider _dataProvider;
+        private readonly MongoDBProvider _dataProvider;
         private readonly IDaemonWorker _daemonWorker;
         private readonly IPerformanceLogger _performanceLogger;
 
@@ -25,22 +26,28 @@ namespace GameServer.Main
                 {"cls", (args) => Console.Clear()},
                 {"clear", (args) => Console.Clear() },
                 {"server", Server },
-                {"log", ServerLog },
-                {"attach", Attach },
                 {"allserver", AllServer },
-                {"import", ImportServer },
                 {"start", Start },
                 {"stop", Stop},
                 {"update", Update},
+                {"log", ServerLog },
+                {"attach", Attach },
+                {"import", ImportServer },
                 {"exit", (args) => Running = false}
             };
 
             _dataProvider = new MongoDBProvider(settings.ProviderSettings);
             _daemonWorker = new DockerWorker(settings.DaemonSettings, _dataProvider);
-            //_performanceLogger = new PerformanceLogger(settings.LoggingSettings, _dataProvider);
+            _performanceLogger = new PerformanceLogger(settings.LoggingSettings, _dataProvider);
         }
 
-        private void Attach(string[] args)
+        public void Start()
+        {
+            CommandQueue.NewCommand += OnNewCommand;
+            _dataProvider.Connect();
+        }
+
+        private async void Server(string[] args)
         {
             if (args.Length != 1)
             {
@@ -48,7 +55,53 @@ namespace GameServer.Main
                 return;
             }
 
-            _daemonWorker.AttachServer(args[0]);
+            var server = await _daemonWorker.GetServer(args[0]);
+
+            var status = await server.GetStatus();
+            Console.WriteLine($"{String.Join('|', server.Names)}: {server.ID}");
+            Console.WriteLine($"   ->State: {status.State}");
+            Console.WriteLine($"   ->Status: {status.Status}");
+        }
+
+        private async void AllServer(string[] args)
+        {
+            if (args.Length != 0)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            var servers = await _daemonWorker.GetAllServer();
+            Console.WriteLine($"Names: ID");
+            foreach (var server in servers)
+            {
+                var status = await server.GetStatus();
+                Console.WriteLine($"{String.Join('|', server.Names)}: {server.ID}");
+                Console.WriteLine($"   ->State: {status.State}");
+                Console.WriteLine($"   ->Status: {status.Status}");
+            }
+        }
+
+        private async void Start(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            await _daemonWorker.StartServer(args[0]);
+        }
+
+        private async void Stop(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            await _daemonWorker.StopServer(args[0]);
         }
 
         private async void Update(string[] args)
@@ -75,6 +128,17 @@ namespace GameServer.Main
             Console.WriteLine(logs);
         }
 
+        private void Attach(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            _daemonWorker.AttachServer(args[0]);
+        }
+
         private async void ImportServer(string[] args)
         {
             if (args.Length != 1)
@@ -87,75 +151,12 @@ namespace GameServer.Main
             await _daemonWorker.ImportServer(config);
         }
 
-        private async void AllServer(string[] args)
-        {
-            if (args.Length != 0)
-            {
-                DisplayHelp("only One Argument for help");
-                return;
-            }
-
-            var servers = await _daemonWorker.GetAllServer();
-            Console.WriteLine($"Names: ID");
-            foreach (var server in servers)
-            {
-                var status = await server.GetStatus();
-                Console.WriteLine($"{String.Join('|', server.Names)}: {server.ID}");
-                Console.WriteLine($"   ->State: {status.State}");
-                Console.WriteLine($"   ->Status: {status.Status}");
-            }
-        }
-
-        private async void Server(string[] args)
-        {
-            if (args.Length != 1)
-            {
-                DisplayHelp("only One Argument for help");
-                return;
-            }
-
-            var server = await _daemonWorker.GetServer(args[0]);
-
-            var status = await server.GetStatus();
-            Console.WriteLine($"{String.Join('|', server.Names)}: {server.ID}");
-            Console.WriteLine($"   ->State: {status.State}");
-            Console.WriteLine($"   ->Status: {status.Status}");
-        }
-
-        private async void Stop(string[] args)
-        {
-            if (args.Length != 1)
-            {
-                DisplayHelp("only One Argument for help");
-                return;
-            }
-
-            await _daemonWorker.StopServer(args[0]);
-        }
-
-        private async void Start(string[] args)
-        {
-            if (args.Length != 1)
-            {
-                DisplayHelp("only One Argument for help");
-                return;
-            }
-
-            await _daemonWorker.StartServer(args[0]);
-        }
-
         private async void DisplayHelp(string message)
         {
             Console.WriteLine(message);
         }
 
-        public void Start()
-        {
-            CommandQueue.NewCommand += OnNewCommand;
-            _dataProvider.Connect();
-        }
-
-        private void OnNewCommand(object sender, SampleEventArgs e)
+        private void OnNewCommand(object sender, NewCommandEventArgs e)
         {
             var c = new Command(e.Command);
             var contains = false;

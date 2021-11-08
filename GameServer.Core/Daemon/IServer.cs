@@ -5,7 +5,6 @@ namespace GameServer.Core.Daemon
     public interface IServer
     {
         string ID { get; }
-
         IList<string> Names { get; set; }
         delegate void NewOutHandler(object sender, OutEventArgs e);
         event NewOutHandler NewOutStreamMessage;

@@ -23,19 +23,87 @@ namespace GameServer.Worker
             _ = InitCache(settings.ContainerSettings);
         }
 
+        public async Task<IServer> GetServer(string id)
+        {
+            if (ContainerCache.TryGetValue(id, out var container))
+                return container;
+            throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
+        }
+
+        public async Task<ServerStatus> GetServerStatus(string id)
+        {
+            if (ContainerCache.TryGetValue(id, out var container))
+                return await container.GetStatus();
+
+            throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
+        }
+
+        public async Task<IList<string>> ImportServer(ServerConfig config)
+        {
+            var warnings = DockerContainer.FromConfig(client, config, out var container);
+            ContainerCache.Add(container.ID, container);
+            await DataProvider.SaveServer(new ServerEntity(container.ID) { Config = config, Log = "" }) ;
+            container.NewOutStreamMessage += OnNewOut;
+            await container.Install();
+            return warnings;
+        }
+
+        public async Task StartServer(string id)
+        {
+            if (ContainerCache.TryGetValue(id, out var container))
+                await container.Start();
+        }
+
+        public async Task<IServer[]> GetAllServer()
+        {
+            return ContainerCache.Values.ToArray();
+        }
+
+        public async Task StopServer(string id)
+        {
+            if (ContainerCache.TryGetValue(id, out var container))
+                await container.Stop();
+        }
+
+        public async Task<string> GetServerLogs(string id)
+        {
+            if (ContainerCache.TryGetValue(id, out var container))
+                return container.GetLogs().stdout;
+
+            throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
+        }
+
+        public async Task Update(string id)
+        {
+            if (ContainerCache.TryGetValue(id, out var container))
+                await container.Update();
+        }
+
+        public void AttachServer(string id)
+        {
+            if (!ContainerCache.TryGetValue(id, out var container))
+                throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
+
+            Console.WriteLine($"{container.GetLogs().stdout}");
+
+            container.NewOutStreamMessage += (s, e) =>
+            {
+                Console.Write($"{e.Message}");
+            };
+        }
+
         private async Task InitCache(ContainerSettings settings)
         {
             var containerRequest = await client.Containers.ListContainersAsync(new Docker.DotNet.Models.ContainersListParameters()
             {
                 All = true
             });
-            var containerCount = containerRequest.Count;
 
             var dbContainers = (await DataProvider.GetAllServerID()).ToList();
 
             List<Task> pool = new();
 
-            for (int i = 0; i < containerCount; i++)
+            for (int i = 0; i < containerRequest.Count; i++)
             {
                 string id = containerRequest[i].ID;
                 if (!dbContainers.Remove(id))
@@ -52,10 +120,7 @@ namespace GameServer.Worker
             }
 
             foreach (var notTraced in dbContainers)
-            {
                 Console.WriteLine($"[Warning] Not Tracked Import Again{notTraced}");
-            }
-            // warning if containers still has entries
 
             await Task.WhenAll(pool);
         }
@@ -67,52 +132,6 @@ namespace GameServer.Worker
             DataProvider.AppendLog(s.ID, e.Message);
         }
 
-        public async Task<IServer> GetServer(string id)
-        {
-            var contains = ContainerCache.TryGetValue(id, out var container);
-            if (!contains)
-                return null;
-            return container;
-        }
-
-        public async Task<ServerStatus> GetServerStatus(string id)
-        {
-            var contains = ContainerCache.TryGetValue(id, out var container);
-            if (!contains)
-                return null;
-            
-            return await container.GetStatus(); 
-        }
-
-        public async Task<IList<string>> ImportServer(ServerConfig config)
-        {
-            var warnings = DockerContainer.FromConfig(client, config, out var container);
-            ContainerCache.Add(container.ID, container);
-            await DataProvider.SaveServer(new ServerEntity(container.ID) { Config = config, Log = "" }) ;
-            container.NewOutStreamMessage += OnNewOut;
-            await container.Install();
-            return warnings;
-        }
-
-        public async Task StartServer(string id)
-        {
-            var contains = ContainerCache.TryGetValue(id, out var container);
-            if (contains)
-                await container.Start();
-        }
-
-        public async Task<IServer[]> GetAllServer()
-        {
-            return ContainerCache.Values.ToArray();
-        }
-
-        public async Task StopServer(string id)
-        {
-            var contains = ContainerCache.TryGetValue(id, out var container);
-            if (contains)
-                await container.Stop();
-        }
-
         public void Dispose()
         {
             foreach (var id in ContainerCache.Keys)
@@ -121,37 +140,6 @@ namespace GameServer.Worker
                 container?.Stop();
                 container?.Dispose();
             }
-        }
-
-        public async Task<string> GetServerLogs(string id)
-        {
-            var contains = ContainerCache.TryGetValue(id, out var container);
-            if (!contains)
-                throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
-
-            (_, string stdout) = container.GetLogs();
-            return stdout;
-        }
-
-        public async Task Update(string id)
-        {
-            var contains = ContainerCache.TryGetValue(id, out var container);
-            if (contains)
-                await container.Update();
-        }
-
-        public void AttachServer(string id)
-        {
-            var contains = ContainerCache.TryGetValue(id, out var container);
-            if (!contains)
-                throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
-
-            Console.WriteLine($"{container.GetLogs().stdout}");
-
-            container.NewOutStreamMessage += (s, e) =>
-            {
-                Console.Write($"{e.Message}");
-            };
         }
     }
 }

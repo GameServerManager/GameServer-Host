@@ -9,9 +9,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Test", "GameServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Worker", "GameServer.Worker\GameServer.Worker.csproj", "{722DA1BB-E575-493E-9C76-8F26E494012A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Core", "GameServer.Core\GameServer.Core.csproj", "{F03CC8CD-AD02-4EF7-BF83-1D01BBA15195}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Core", "GameServer.Core\GameServer.Core.csproj", "{F03CC8CD-AD02-4EF7-BF83-1D01BBA15195}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Data", "GameServer.Data\GameServer.Data.csproj", "{BF62345E-1AE0-4D23-8E57-B9BA2F5423DF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Data", "GameServer.Data\GameServer.Data.csproj", "{BF62345E-1AE0-4D23-8E57-B9BA2F5423DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Logger", "GameServer.Logger\GameServer.Logger.csproj", "{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{BF62345E-1AE0-4D23-8E57-B9BA2F5423DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BF62345E-1AE0-4D23-8E57-B9BA2F5423DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BF62345E-1AE0-4D23-8E57-B9BA2F5423DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

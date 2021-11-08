@@ -13,7 +13,7 @@
             Message = message;
             Target = (TargetStream) Enum.Parse(typeof(TargetStream), targetStream);
         }
-        public string Message { get; } // readonly
-        public TargetStream Target{ get; } // readonly
+        public string Message { get; }
+        public TargetStream Target{ get; } 
     }
 }

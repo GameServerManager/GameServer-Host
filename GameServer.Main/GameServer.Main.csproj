@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\GameServer.Core\GameServer.Core.csproj" />
     <ProjectReference Include="..\GameServer.Data\GameServer.Data.csproj" />
+    <ProjectReference Include="..\GameServer.Logger\GameServer.Logger.csproj" />
     <ProjectReference Include="..\GameServer.Worker\GameServer.Worker.csproj" />
   </ItemGroup>
 

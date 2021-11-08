@@ -6,49 +6,29 @@ namespace GameServer.Worker
 {
     public partial class DockerContainer : IServer, IDisposable
     {
+        public string ID { get; }
+        public string ImageID { get; set; }
+        public string Image { get; set; }
+        public IList<string> Names { get; set; }
+        public event IServer.NewOutHandler NewOutStreamMessage;
         private DockerClient Client { get; }
         private string StdoutCache { get; set; } = "";
         private string StderrCache { get; set; } = "";
 
-        public string ID { get; }
-
-        public IList<string> Names { get; set; }
-
-        public string Image { get; set; }
-
-        public string ImageID { get; set; }
-
-        public event IServer.NewOutHandler NewOutStreamMessage;
-
         public DockerContainer(DockerClient client, string id)
         {
+            var container = GetOwnContainer().Result;
             Client = client;
             ID = id;
-
-            var container = GetOwnContainer().Result;
             Image = container.Image;
             ImageID = container.ImageID;
             Names = container.Names;
-
             NewOutStreamMessage += OnOutStreamMessage;
-        }
-
-        private void OnOutStreamMessage(object sender, OutEventArgs e)
-        {
-            if (e.Target == OutEventArgs.TargetStream.StandardOut)
-            {
-                StdoutCache += e.Message;
-            }
-            else if (e.Target == OutEventArgs.TargetStream.StandardError)
-            {
-                StderrCache += e.Message;
-            }
         }
 
         public async Task Start()
         {
             await Client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
-
             await ExecFromName("StartScript");
         }
 
@@ -74,13 +54,7 @@ namespace GameServer.Worker
             {
                 Filters = new Dictionary<string, IDictionary<string, bool>>
                 {
-                    {
-                        "id",
-                        new Dictionary<string, bool>
-                        {
-                            { ID, true}
-                        }
-                    }
+                    { "id", new Dictionary<string, bool>{ { ID, true} } }
                 },
                 All = true
             });
@@ -93,8 +67,24 @@ namespace GameServer.Worker
                 name = Guid.NewGuid().ToString();
 
             GenerateScript(script, name, this.Names.First());
-
             await ExecFromName(name);
+        }
+
+        public async Task Install()
+        {
+            await Client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
+            await ExecFromName("InstalationScript");
+        }
+
+        public async Task Update()
+        {
+            await Client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
+            await ExecFromName("UpdateScript");
+        }
+
+        public (string stderr, string stdout) GetLogs()
+        {
+            return (StderrCache, StdoutCache);
         }
 
         private async Task ExecFromName(string name, string endpoint = "/bin/bash")
@@ -109,19 +99,16 @@ namespace GameServer.Worker
             };
 
             var exec = await Client.Exec.ExecCreateContainerAsync(ID, createParams);
-            //await client.Exec.StartContainerExecAsync(exec.ID);
+
             var token = new CancellationTokenSource();
-
-
             var stream = await Client.Exec.StartAndAttachContainerExecAsync(exec.ID, true, token.Token);
 
             var buffer = new byte[1];
-            var offset = 0;
             MultiplexedStream.ReadResult res;
 
             do
             {
-                res = await stream.ReadOutputAsync(buffer, offset, 1, token.Token);
+                res = await stream.ReadOutputAsync(buffer, 0, 1, token.Token);
 
                 if (res.Count != 0)
                     NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString()));
@@ -129,25 +116,21 @@ namespace GameServer.Worker
 
         }
 
+        private void OnOutStreamMessage(object sender, OutEventArgs e)
+        {
+            if (e.Target == OutEventArgs.TargetStream.StandardOut)
+            {
+                StdoutCache += e.Message;
+            }
+            else if (e.Target == OutEventArgs.TargetStream.StandardError)
+            {
+                StderrCache += e.Message;
+            }
+        }
+
         public void Dispose()
         {
             Client.Dispose();
-        }
-
-        public async Task Install()
-        {
-            await Client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
-            await ExecFromName("InstalationScript");
-        }
-
-        public async Task Update()
-        {
-            await ExecFromName("UpdateScript");
-        }
-
-        public (string stderr, string stdout) GetLogs()
-        {
-            return (StderrCache, StdoutCache);
         }
     }
 }

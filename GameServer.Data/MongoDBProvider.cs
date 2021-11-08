@@ -8,12 +8,11 @@ namespace GameServer.Data
 {
     public class MongoDBProvider : IDaemonDataProvider, ILoggerDataProvider
     {
+        private readonly MongoClient _dbClient;
         private readonly string _connectionString;
-        private MongoClient _dbClient;
-        private object AppenLock = new object ();
-        private readonly string ServerCollectionName = "ServerEntitys";
-        private readonly string ServerDatabaseName = "Server";
-        private readonly string LoggerDatabaseName = "Logger";
+
+        public IMongoCollection<ServerEntity> ServerCollection { get; private set; }
+        public IMongoCollection<ServerEntity> LoggerCollection { get; private set; }
 
         public MongoDBProvider(DataProviderSettings settings)
         {
@@ -21,6 +20,8 @@ namespace GameServer.Data
             _dbClient = new MongoClient(_connectionString);
         }
 
+
+        #region IDatabaseProvider
         public void Connect()
         {
             InitLoggerDatabase();
@@ -31,76 +32,68 @@ namespace GameServer.Data
         {
 
         }
+        #endregion
 
-        public void Dispose()
-        {
-            Disconnect();
-        }
-
+        #region IDaemonDataProvider
         public async Task<IEnumerable<string>> GetAllServerID()
         {
-            var db = _dbClient.GetDatabase(ServerDatabaseName);
-            var collection = db.GetCollection<ServerEntity>(ServerCollectionName);
-
-            var server = await collection.FindAsync(new BsonDocument());
+            var server = await ServerCollection.FindAsync(new BsonDocument());
             var a = await server.ToListAsync();
             return a.Select(s => s.ID);
         }
 
         public async Task SaveServer(ServerEntity server)
         {
-            var db = _dbClient.GetDatabase(ServerDatabaseName);
-            var collection = db.GetCollection<ServerEntity>(ServerCollectionName);
-            await collection.InsertOneAsync(server);
+            await ServerCollection.InsertOneAsync(server);
         }
 
         public async Task<ServerEntity> ServerByID(string id)
         {
-            var db = _dbClient.GetDatabase(ServerDatabaseName);
-            var collection = db.GetCollection<ServerEntity>(ServerCollectionName);
-
             var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID, id);
 
-            var server = await collection.FindAsync(filter);
+            var server = await ServerCollection.FindAsync(filter);
             return await server.FirstAsync();
 
         }
 
         public async Task AppendLog(string id, string message)
         {
-            var db = _dbClient.GetDatabase(ServerDatabaseName);
-            var collection = db.GetCollection<ServerEntity>(ServerCollectionName);
             var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID, id);
+            var update = Builders<ServerEntity>.Update.Pipeline(UpdateQuery(message));
 
-            //var p = new BsonDocument[]
-            //{
-            //    new BsonDocument { 
-            //        { "$set", new BsonDocument("Log", new BsonDocument { 
-            //            { "$concat", new BsonDocument("$Log", message)} 
-            //        })} 
-            //    }
-            //};
-            var p = new BsonDocument[]
+            await ServerCollection.UpdateOneAsync(filter, update);
+        }
+        #endregion
+
+        public void Dispose()
+        {
+            Disconnect();
+        }
+
+        private BsonDocument[] UpdateQuery(string message)
+        {
+            return new BsonDocument[]
             {
                 BsonDocument.Parse(
-@"
-{ 
-    $set: {
-        Log:
-            { 
-            $concat:[ '$Log', '" + message + @"' ] 
-        }
-    }
-}")
-            };
-
-            var update = Builders<ServerEntity>.Update.Pipeline(p);
-            await collection.UpdateOneAsync(filter, update);
+                    @"
+                    { 
+                        $set: {
+                            Log:
+                                { 
+                                $concat:[ '$Log', '" + message + @"' ] 
+                            }
+                        }
+                    }"
+            )};
         }
 
         private void InitLoggerDatabase()
         {
-            var db = _dbClient.GetDatabase(LoggerDatabaseName);
+            string loggerDatabaseName = "Logger";
+            string loggerCollectionName = "LoggerEntitys";
+
+            var db = _dbClient.GetDatabase(loggerDatabaseName);
+            LoggerCollection = db.GetCollection<ServerEntity>(loggerCollectionName);
         }
 
         private void InitServerDatabase()
@@ -111,7 +104,11 @@ namespace GameServer.Data
                 cm.SetIdMember(cm.GetMemberMap(c => c.ID));
             });
 
-            var db = _dbClient.GetDatabase(ServerDatabaseName);
+            string serverDatabaseName = "Server";
+            string serverCollectionName = "ServerEntitys";
+
+            var db = _dbClient.GetDatabase(serverDatabaseName);
+            ServerCollection = db.GetCollection<ServerEntity>(serverCollectionName);
         }
     }
 }

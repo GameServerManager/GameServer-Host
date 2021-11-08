@@ -2,35 +2,27 @@
 
 namespace GameServer.Core.Command
 {
-    public class SampleEventArgs
+    public class NewCommandEventArgs
     {
-        public SampleEventArgs(string command) { Command = command; }
-        public string Command { get; } // readonly
+        public NewCommandEventArgs(string command) { Command = command; }
+        public string Command { get; } 
     }
 
     public class CommandQueue : IDisposable
     {
-        private ActionBlock<SampleEventArgs> queue;
-        public bool IsEmpty
-        {
-            get
-            {
-                return queue.InputCount == 0;
-            }
-        }
-        public delegate void NewCommandHandler(object sender, SampleEventArgs e);
-
-        // Declare the event.
+        public delegate void NewCommandHandler(object sender, NewCommandEventArgs e);
         public event NewCommandHandler NewCommand;
+        private readonly ActionBlock<NewCommandEventArgs> queue;
+        public bool IsEmpty => queue.InputCount == 0;
 
         public CommandQueue()
         {
-            this.queue = new ActionBlock<SampleEventArgs>(item => NewCommand?.Invoke(this, item));
+            queue = new ActionBlock<NewCommandEventArgs>(item => NewCommand?.Invoke(this, item));
         }
 
         public virtual void PushCommand(string command)
         {
-            queue.Post(new SampleEventArgs(command));
+            queue.Post(new NewCommandEventArgs(command));
         }
 
         public void Dispose()

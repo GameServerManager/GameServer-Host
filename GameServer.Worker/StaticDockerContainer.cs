@@ -8,12 +8,10 @@ namespace GameServer.Worker
         public static IList<string> FromConfig(DockerClient client, ServerConfig config, out DockerContainer container)
         {
             var binds = ConvertMountConfig(config);
-
-            var env = ConvertEnvConfig(config.Variables);
-
             var ports = ConvertPortConfig(config.Ports);
-
+            var env = ConvertEnvConfig(config.Variables);
             var exposedPorts = ConvertExposedPortsConfig(config.Ports);
+            var hostConfig = ConvertHostConfig(binds, ports);
 
             ProcessScripts(config);
 
@@ -24,19 +22,6 @@ namespace GameServer.Worker
                 { "GameServer.Comment", config.Comment},
                 { "GameServer.Discription", config.Discription},
             };
-
-            var hostConfig = new Docker.DotNet.Models.HostConfig()
-            {
-                RestartPolicy = new()
-                {
-                    Name = Docker.DotNet.Models.RestartPolicyKind.UnlessStopped
-                },
-            };
-            if (binds != null && binds.Count != 0)
-                hostConfig.Binds = binds;
-
-            if (ports != null && ports.Count != 0)
-                hostConfig.PortBindings = ports;
 
             var param = new Docker.DotNet.Models.CreateContainerParameters()
             {
@@ -68,14 +53,29 @@ namespace GameServer.Worker
             return containerInfo.Warnings;
         }
 
+        private static Docker.DotNet.Models.HostConfig ConvertHostConfig(List<string> binds, Dictionary<string, IList<Docker.DotNet.Models.PortBinding>> ports)
+        {
+            var hostConfig = new Docker.DotNet.Models.HostConfig()
+            {
+                RestartPolicy = new()
+                {
+                    Name = Docker.DotNet.Models.RestartPolicyKind.UnlessStopped
+                },
+            };
+            if (binds != null && binds.Count != 0)
+                hostConfig.Binds = binds;
+
+            if (ports != null && ports.Count != 0)
+                hostConfig.PortBindings = ports;
+            return hostConfig;
+        }
+
         private static IDictionary<string, Docker.DotNet.Models.EmptyStruct> ConvertExposedPortsConfig(PortMap[] configPorts)
         {
             Dictionary<string, Docker.DotNet.Models.EmptyStruct> ports = new();
 
             foreach (var port in configPorts)
-            {
                 ports.Add(port.ServerPort, new Docker.DotNet.Models.EmptyStruct());
-            }
 
             return ports;
         }

@@ -14,19 +14,22 @@
 
             foreach (var character in command)
             {
-                if (character == '\\' && !escaped)
-                    escaped = true;
-                else if (character == '"' && !escaped)
-                    ignoreSpace = !ignoreSpace;
-                else if (character == ' ' && !ignoreSpace && !escaped)
+                switch (character)
                 {
-                    bufferArgs.Add(buffer);
-                    buffer = "";
-                }
-                else
-                {
-                    buffer += character;
-                    escaped = false;
+                    case '\\' when !escaped:
+                        escaped = true;
+                        break;
+                    case '"' when !escaped:
+                        ignoreSpace = !ignoreSpace;
+                        break;
+                    case ' ' when !ignoreSpace && !escaped:
+                        bufferArgs.Add(buffer);
+                        buffer = "";
+                        break;
+                    default:
+                        buffer += character;
+                        escaped = false;
+                        break;
                 }
             }
 
