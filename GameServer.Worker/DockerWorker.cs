@@ -2,7 +2,12 @@
 using GameServer.Core.Daemon;
 using GameServer.Core.Daemon.Config;
 using GameServer.Core.Database;
+using GameServer.Core.Database.Daemon;
 using GameServer.Core.Settings;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace GameServer.Worker
 {
@@ -112,7 +117,7 @@ namespace GameServer.Worker
                     continue;
                 }
 
-                var container = new DockerContainer(client, id);
+                var container = new DockerContainer(client, id, null);
                 container.NewOutStreamMessage += OnNewOut;
 
                 pool.Add(container.Start());

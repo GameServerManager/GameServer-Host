@@ -7,6 +7,8 @@ using GameServer.Core.Settings;
 using GameServer.Data;
 using GameServer.Logger;
 using GameServer.Worker;
+using System;
+using System.Collections.Generic;
 
 namespace GameServer.Main
 {
@@ -30,15 +32,27 @@ namespace GameServer.Main
                 {"start", Start },
                 {"stop", Stop},
                 {"update", Update},
-                {"log", ServerLog },
+                {"clog", ServerLog },
                 {"attach", Attach },
                 {"import", ImportServer },
+                {"startlog", StartPerformanceLogger },
+                {"stoplog", StopPerformanceLogger },
+                {"getlog", GetHistory },
+                {"help", Help },
                 {"exit", (args) => Running = false}
             };
 
             _dataProvider = new MongoDBProvider(settings.ProviderSettings);
             _daemonWorker = new DockerWorker(settings.DaemonSettings, _dataProvider);
             _performanceLogger = new PerformanceLogger(settings.LoggingSettings, _dataProvider);
+        }
+
+        private void Help(string[] obj)
+        {
+            foreach (var item in _commandMap.Keys)
+            {
+                Console.WriteLine(item);
+            }
         }
 
         public void Start()
@@ -149,6 +163,45 @@ namespace GameServer.Main
 
             var config = ServerConfig.FromFile(args[0]);
             await _daemonWorker.ImportServer(config);
+        }
+
+        private async void StartPerformanceLogger(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            await _performanceLogger.StartLogging(args[0]);
+        }
+
+        private async void StopPerformanceLogger(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            await _performanceLogger.StopLogging(args[0]);
+        }
+
+        private async void GetHistory(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                DisplayHelp("only One Argument for help");
+                return;
+            }
+
+            var history = await _performanceLogger.GetHistory(args[0]);
+
+            Console.WriteLine($"[log] Timestamp | CPU | Ram");
+            foreach (var data in history)
+            {
+                Console.WriteLine($"[log]{data.Time} | {data.CPU.CpuUsage} | {data.RAM.MemoryUsage}");
+            }
         }
 
         private async void DisplayHelp(string message)

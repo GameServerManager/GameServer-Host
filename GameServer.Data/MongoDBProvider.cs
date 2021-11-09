@@ -1,4 +1,6 @@
 ﻿using GameServer.Core.Database;
+using GameServer.Core.Database.Daemon;
+using GameServer.Core.Database.Logger;
 using GameServer.Core.Settings;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -12,7 +14,7 @@ namespace GameServer.Data
         private readonly string _connectionString;
 
         public IMongoCollection<ServerEntity> ServerCollection { get; private set; }
-        public IMongoCollection<ServerEntity> LoggerCollection { get; private set; }
+        public Dictionary<string, IMongoCollection<DataPoint>> LoggerCollections { get; private set; } = new();
 
         public MongoDBProvider(DataProviderSettings settings)
         {
@@ -20,12 +22,11 @@ namespace GameServer.Data
             _dbClient = new MongoClient(_connectionString);
         }
 
-
         #region IDatabaseProvider
         public void Connect()
         {
-            InitLoggerDatabase();
             InitServerDatabase();
+            InitLoggerDatabase();
         }
 
         public void Disconnect()
@@ -65,11 +66,24 @@ namespace GameServer.Data
         }
         #endregion
 
+        #region ILoggerDataProvider
+        public async Task AppendLogs(string id, DataPoint point)
+        {
+            await LoggerCollections[id].InsertOneAsync(point);
+        }
+
+        public async Task<List<DataPoint>> GetHistory(string id)
+        {
+            var collection = await LoggerCollections[id].FindAsync(Builders<DataPoint>.Filter.Empty);
+            var history = await collection.ToListAsync();
+            return history;
+        }
+        #endregion
+
         public void Dispose()
         {
             Disconnect();
         }
-
         private BsonDocument[] UpdateQuery(string message)
         {
             return new BsonDocument[]
@@ -87,13 +101,33 @@ namespace GameServer.Data
             )};
         }
 
-        private void InitLoggerDatabase()
+        private async void InitLoggerDatabase()
         {
+            BsonClassMap.RegisterClassMap<DataPoint>(cm =>
+            {
+                cm.AutoMap();
+                cm.SetIgnoreExtraElements(true);
+            });
+            BsonClassMap.RegisterClassMap<CpuStats>(cm =>
+            {
+                cm.AutoMap();
+                cm.UnmapMember(m => m.CpuUsage);
+            });
+            BsonClassMap.RegisterClassMap<MemoryStats>(cm =>
+            {
+                cm.AutoMap();
+                cm.UnmapMember(m => m.MemoryUsage);
+            });
+
             string loggerDatabaseName = "Logger";
-            string loggerCollectionName = "LoggerEntitys";
 
             var db = _dbClient.GetDatabase(loggerDatabaseName);
-            LoggerCollection = db.GetCollection<ServerEntity>(loggerCollectionName);
+            var ids = await GetAllServerID();
+
+            foreach (var id in ids)
+            {
+                LoggerCollections.Add(id, db.GetCollection<DataPoint>(id));
+            }
         }
 
         private void InitServerDatabase()

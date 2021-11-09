@@ -1,6 +1,11 @@
 ﻿using Docker.DotNet;
 using GameServer.Core.Daemon;
 using GameServer.Core.Daemon.Config;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GameServer.Worker
 {
@@ -18,10 +23,10 @@ namespace GameServer.Worker
 
         public DockerContainer(DockerClient client, string id, List<string>? env)
         {
-            var container = GetOwnContainer().Result;
             Client = client;
             ID = id;
             Env = env;
+            var container = GetOwnContainer().Result;
             Image = container.Image;
             ImageID = container.ImageID;
             Names = container.Names;

@@ -1,4 +1,6 @@
-﻿namespace GameServer.Core.Database
+﻿using GameServer.Core.Database.Daemon;
+
+namespace GameServer.Core.Database
 {
     public interface IDaemonDataProvider : IDatabaseProvider, IDisposable
     {

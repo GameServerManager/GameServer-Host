@@ -6,5 +6,7 @@ namespace GameServer.Core.Settings
     {
         [DefaultValue(true)]
         public string LoggingTest { get; set; } = "testLogging";
+        [DefaultValue(true)]
+        public int LoggerInterval { get; set; } = 10;
     }
 }
