@@ -49,7 +49,7 @@ namespace GameServer.Worker
 
             var containerInfo = client.Containers.CreateContainerAsync(param).Result;
 
-            container = new DockerContainer(client, containerInfo.ID);
+            container = new DockerContainer(client, containerInfo.ID, env);
             return containerInfo.Warnings;
         }
 

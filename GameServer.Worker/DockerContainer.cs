@@ -7,6 +7,7 @@ namespace GameServer.Worker
     public partial class DockerContainer : IServer, IDisposable
     {
         public string ID { get; }
+        public List<string>? Env { get; }
         public string ImageID { get; set; }
         public string Image { get; set; }
         public IList<string> Names { get; set; }
@@ -15,11 +16,12 @@ namespace GameServer.Worker
         private string StdoutCache { get; set; } = "";
         private string StderrCache { get; set; } = "";
 
-        public DockerContainer(DockerClient client, string id)
+        public DockerContainer(DockerClient client, string id, List<string>? env)
         {
             var container = GetOwnContainer().Result;
             Client = client;
             ID = id;
+            Env = env;
             Image = container.Image;
             ImageID = container.ImageID;
             Names = container.Names;
@@ -95,6 +97,7 @@ namespace GameServer.Worker
                 AttachStderr = true,
                 AttachStdout = true,
                 Tty = true,
+                Env = Env,
                 Cmd = new List<string>() { endpoint, "-c", $"/Home/scripts/{name}.sh", }
             };
 
