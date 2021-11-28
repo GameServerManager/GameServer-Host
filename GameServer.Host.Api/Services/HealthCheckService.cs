@@ -12,7 +12,8 @@ namespace GameServer.Host.Api.Services
 
         public override Task<HelloReply> Echo(HelloRequest request, ServerCallContext context)
         {
-            return base.Echo(request, context);
+            return Task.FromResult(new HelloReply() { Message = $"Echo: {request.Name}" });
         }
+
     }
 }
