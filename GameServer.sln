@@ -13,7 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Core", "GameServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Data", "GameServer.Data\GameServer.Data.csproj", "{BF62345E-1AE0-4D23-8E57-B9BA2F5423DF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Logger", "GameServer.Logger\GameServer.Logger.csproj", "{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Logger", "GameServer.Logger\GameServer.Logger.csproj", "{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Host.Api", "GameServer.Host.Api\GameServer.Host.Api.csproj", "{994E13C2-65A3-4694-8427-EC2132746DB4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}.Release|Any CPU.Build.0 = Release|Any CPU
+		{994E13C2-65A3-4694-8427-EC2132746DB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{994E13C2-65A3-4694-8427-EC2132746DB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{994E13C2-65A3-4694-8427-EC2132746DB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{994E13C2-65A3-4694-8427-EC2132746DB4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

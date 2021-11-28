@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option csharp_namespace = "GameServer.Host.Api";
+import "google/protobuf/empty.proto";
+
+package logger;
+
+/*
+StartPerformanceLogger 
+StopPerformanceLogger 
+GetHistory 
+*/
+
+// The greeting service definition.
+service LoggerAPI {
+  // Sends a greeting
+  rpc StartPerformanceLogger(StartLoggerRequest) returns(google.protobuf.Empty);
+  rpc StopPerformanceLogger(StopLoggerRequest) returns(google.protobuf.Empty);
+  rpc GetHistory(GetHistoryRequest) returns(HistoryList);
+}
+
+message StartLoggerRequest{
+	string id = 1;
+}
+
+message StopLoggerRequest{
+	string id = 1;
+}
+
+message GetHistoryRequest{
+	string id = 1;
+}
+
+message DataPoint{
+	int64 timeStamp = 1;
+	string value = 2;
+}
+
+message History{
+	repeated DataPoint id = 1;
+}
+
+message HistoryList{
+	repeated History history= 1;
+}

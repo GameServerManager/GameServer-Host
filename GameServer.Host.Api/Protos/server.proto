@@ -1,0 +1,68 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "GameServer.Host.Api";
+package server;
+
+// The greeting service definition.
+service ServerAPI {
+  // Sends a greeting
+  rpc Get(ServerRequest) returns (Server); 
+  rpc GetAll(google.protobuf.Empty) returns (ServerList); 
+  rpc Import(ImportRequest) returns (stream StdOut); 
+  rpc Start(StartRequest) returns (Status); 
+  rpc Stop(StopRequest) returns (Status); 
+  rpc Update(UpdateRequest) returns (google.protobuf.Empty); 
+  rpc GetLog(LogRequest) returns (ServerLog); 
+  rpc Attach (AttachRequest) returns (stream StdOut); 
+}
+
+message ServerRequest{
+	string id = 1;
+}
+
+message ImportRequest{
+	string id = 1;
+}
+
+message StartRequest{
+	string id = 1;
+}
+
+message StopRequest{
+	string id = 1;
+}
+
+message UpdateRequest{
+	string id = 1;
+}
+
+message LogRequest{
+	string id = 1;
+}
+
+message AttachRequest{
+	string id = 1;
+}
+
+message Server{
+	string name = 1;
+	string id = 2;
+	string Status = 3;
+	string State = 4;
+}
+
+message ServerList {
+	repeated Server servers = 1;
+}
+
+message StdOut{
+	string msg = 1;
+}
+
+message Status {
+	string status = 1;
+}
+
+message ServerLog{
+	string log = 1;
+}

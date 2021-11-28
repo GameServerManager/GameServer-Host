@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option csharp_namespace = "GameServer.Host.Api";
+
+package healthCheck;
+
+service HealthCheckAPI {
+  // Sends a greeting
+  rpc Echo (HelloRequest) returns (HelloReply);
+}
+
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloReply {
+  string message = 1;
+}
