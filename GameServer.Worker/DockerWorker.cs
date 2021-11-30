@@ -84,7 +84,7 @@ namespace GameServer.Worker
                 await container.Update();
         }
 
-        public void AttachServer(string id)
+        public void AttachServer(string id, Action<string> callback)
         {
             if (!ContainerCache.TryGetValue(id, out var container))
                 throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
@@ -93,6 +93,7 @@ namespace GameServer.Worker
 
             container.NewOutStreamMessage += (s, e) =>
             {
+                callback(e.Message);
                 Console.Write($"{e.Message}");
             };
         }

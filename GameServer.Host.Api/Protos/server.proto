@@ -21,7 +21,45 @@ message ServerRequest{
 }
 
 message ImportRequest{
-	string id = 1;
+	string Name = 1;
+	string Comment = 2;
+	string Discription = 3;
+	string Image = 4;
+	repeated MountingPoint Mounts = 5;
+	repeated PortMap Ports = 6;
+	ServerScripts ContainerScripts  = 7;
+	repeated Variable Variables = 8;
+}
+
+message MountingPoint{
+	string HostPath = 1;
+	string ServerPath = 2;
+}
+
+message PortMap{
+	repeated string HostPorts = 1;
+	string ServerPort = 2;
+}
+
+message ServerScripts{
+	Script InstalationScript = 1; 
+	Script StartScript = 2;
+	Script UpdateScript = 3;
+}
+
+message Script{
+	string ScriptCommand = 1;
+	string Entrypoint = 2;
+}
+
+message Variable{
+	string Name = 1;
+	string Description = 2; 
+	string EnvVariable = 3;
+	string DefaultValue = 4;
+	bool UserViewable = 5;
+	bool UserEditable = 6;
+
 }
 
 message StartRequest{
@@ -45,7 +83,7 @@ message AttachRequest{
 }
 
 message Server{
-	string name = 1;
+	repeated string name = 1;
 	string id = 2;
 	string Status = 3;
 	string State = 4;

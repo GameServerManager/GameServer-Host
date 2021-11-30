@@ -150,7 +150,7 @@ namespace GameServer.Main
                 return;
             }
 
-            _daemonWorker.AttachServer(args[0]);
+            _daemonWorker.AttachServer(args[0], (msg) => Console.WriteLine(msg));
         }
 
         private async void ImportServer(string[] args)

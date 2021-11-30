@@ -14,6 +14,6 @@ namespace GameServer.Core.Daemon
         Task StartServer(string id);
         Task StopServer(string id);
         Task Update(string id);
-        void AttachServer(string id);
+        void AttachServer(string id, Action<string> callback);
     }
 }
