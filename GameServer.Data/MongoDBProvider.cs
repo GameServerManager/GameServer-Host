@@ -2,6 +2,7 @@
 using GameServer.Core.Database.Daemon;
 using GameServer.Core.Database.Logger;
 using GameServer.Core.Settings;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
@@ -16,10 +17,12 @@ namespace GameServer.Data
         public IMongoCollection<ServerEntity> ServerCollection { get; private set; }
         public Dictionary<string, IMongoCollection<DataPoint>> LoggerCollections { get; private set; } = new();
 
-        public MongoDBProvider(DataProviderSettings settings)
+        public MongoDBProvider(IGameServerSettings gameServerSettings, ILogger<MongoDBProvider> logger)
         {
+            DataProviderSettings settings = gameServerSettings.ProviderSettings;
             _connectionString = $"mongodb://{settings.UserName}:{settings.Password}@{settings.Host}:{settings.Port}/";
             _dbClient = new MongoClient(_connectionString);
+            Connect();
         }
 
         #region IDatabaseProvider

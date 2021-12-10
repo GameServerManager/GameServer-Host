@@ -4,6 +4,7 @@ using GameServer.Core.Database;
 using GameServer.Core.Database.Logger;
 using GameServer.Core.Logger;
 using GameServer.Core.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace GameServer.Logger
 {
@@ -14,10 +15,12 @@ namespace GameServer.Logger
         private readonly Dictionary<string, CancellationTokenSource> StatToken = new();
         private readonly Dictionary<string, DateTime> LastUpdate = new();
         private readonly DockerClient client;
+        private readonly ILogger<PerformanceLogger> _logger;
 
-        public PerformanceLogger(LoggingSettings loggingSettings, ILoggerDataProvider loggerProvider)
+        public PerformanceLogger(IGameServerSettings gameServerSettings, ILoggerDataProvider loggerProvider, ILogger<PerformanceLogger> logger)
         {
-            this.loggingSettings = loggingSettings;
+            _logger = logger;
+            this.loggingSettings = gameServerSettings.LoggingSettings;
             this.dataProvider = loggerProvider;
             client = new DockerClientConfiguration()
                 .CreateClient();

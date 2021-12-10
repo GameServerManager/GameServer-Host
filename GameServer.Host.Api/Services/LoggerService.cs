@@ -1,4 +1,5 @@
-﻿using Google.Protobuf.WellKnownTypes;
+﻿using GameServer.Core.Logger;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
 namespace GameServer.Host.Api.Services
@@ -6,24 +7,60 @@ namespace GameServer.Host.Api.Services
     public class LoggerService : LoggerAPI.LoggerAPIBase
     {
         private readonly ILogger<LoggerService> _logger;
-        public LoggerService(ILogger<LoggerService> logger)
+        private readonly IPerformanceLogger _performanceLogger;
+
+        public LoggerService(ILogger<LoggerService> logger, IPerformanceLogger performanceLogger)
         {
+            _performanceLogger = performanceLogger;
             _logger = logger;
         }
-
-        public override Task<HistoryList> GetHistory(GetHistoryRequest request, ServerCallContext context)
+        
+        public async override Task<History> GetHistory(GetHistoryRequest request, ServerCallContext context)
         {
-            return base.GetHistory(request, context);
+            var history = await _performanceLogger.GetHistory(request.Id);
+
+            var result = new History();
+
+            foreach (var point in history)
+            {
+                result.History_.Add(new DataPoint() {
+                    CPU = new CpuStats()
+                    {
+                        CpuDelta = (long) point.CPU.CpuDelta,
+                        NumberCpus = (long)point.CPU.NumberCpus,
+                        SystemCpuDelta = (long)point.CPU.SystemCpuDelta
+                    },
+                    Disk = new DiskStats()
+                    {
+                        ReadCountNormalized = (long)point.Disk.ReadCountNormalized,
+                        ReadSizeBytes = (long)point.Disk.ReadSizeBytes,
+                        WriteCountNormalized = (long)point.Disk.WriteCountNormalized,
+                        WriteSizeBytes = (long)point.Disk.WriteSizeBytes
+                    },
+                    RAM = new MemoryStats()
+                    {
+                        AvailableMemory = (long)point.RAM.AvailableMemory,
+                        UsedMemory = (long)point.RAM.UsedMemory,
+                    },
+                    Time = point.Time.Ticks
+                });
+            }
+
+            return result;
         }
 
-        public override Task<Empty> StartPerformanceLogger(StartLoggerRequest request, ServerCallContext context)
+        public async override Task<Empty> StartPerformanceLogger(StartLoggerRequest request, ServerCallContext context)
         {
-            return base.StartPerformanceLogger(request, context);
+            await _performanceLogger.StopLogging(request.Id);
+
+            return new Empty();
         }
 
-        public override Task<Empty> StopPerformanceLogger(StopLoggerRequest request, ServerCallContext context)
+        public async override Task<Empty> StopPerformanceLogger(StopLoggerRequest request, ServerCallContext context)
         {
-            return base.StopPerformanceLogger(request, context);
+            await _performanceLogger.StartLogging(request.Id);
+
+            return new Empty();
         }
     }
 }

@@ -45,7 +45,6 @@ namespace GameServer.Host.Api.Services
             var servers = await _daemonWorker.GetAllServer();
             foreach (var server in servers)
             {
-
                 var state = await server.GetStatus();
                 var s = new Api.Server()
                 {
@@ -134,6 +133,8 @@ namespace GameServer.Host.Api.Services
             config.Variables = vars.ToArray();
 
             var id = await _daemonWorker.ImportServer(config);
+
+            await responseStream.WriteAsync(new StdOut() { Msg = "done" });
         }
 
         public async override Task<Status> Start(StartRequest request, ServerCallContext context)
@@ -144,13 +145,14 @@ namespace GameServer.Host.Api.Services
 
         public async override Task<Status> Stop(StopRequest request, ServerCallContext context)
         {
-            await _daemonWorker.StartServer(request.Id);
+            await _daemonWorker.StopServer(request.Id);
             return new Status() { Status_ = "stopping" };
         }
 
         public async override Task<Empty> Update(UpdateRequest request, ServerCallContext context)
         {
             await _daemonWorker.Update(request.Id);
+            return new Empty();
         }
     }
 }

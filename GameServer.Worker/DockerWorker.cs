@@ -4,6 +4,7 @@ using GameServer.Core.Daemon.Config;
 using GameServer.Core.Database;
 using GameServer.Core.Database.Daemon;
 using GameServer.Core.Settings;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,12 +16,14 @@ namespace GameServer.Worker
     {
         readonly Dictionary<string, DockerContainer> ContainerCache = new();
         private readonly DockerClient client;
+        private readonly ILogger<DockerWorker> _logger;
 
         public IDaemonDataProvider DataProvider { get; }
 
-        public DockerWorker(DaemonSettings settings, IDaemonDataProvider dataProvider)
+        public DockerWorker(IGameServerSettings gameServerSettings, IDaemonDataProvider dataProvider, ILogger<DockerWorker> logger)
         {
-
+            var settings = gameServerSettings.DaemonSettings;
+            _logger = logger;
             DataProvider = dataProvider;
             client = new DockerClientConfiguration()
                 .CreateClient();
@@ -30,16 +33,20 @@ namespace GameServer.Worker
 
         public async Task<IServer> GetServer(string id)
         {
+            _logger.LogDebug($"Getting Server {id}");
             if (ContainerCache.TryGetValue(id, out var container))
                 return container;
+            _logger.LogDebug(new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty), "Container not Found");
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 
         public async Task<ServerStatus> GetServerStatus(string id)
         {
+            _logger.LogDebug($"Getting Server Status {id}");
             if (ContainerCache.TryGetValue(id, out var container))
                 return await container.GetStatus();
 
+            _logger.LogDebug(new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty), "Container not Found");
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 

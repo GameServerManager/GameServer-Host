@@ -4,11 +4,19 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="config.yml" />
     <None Remove="Protos\gameserver_host.proto" />
     <None Remove="Protos\logger.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="config.yml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

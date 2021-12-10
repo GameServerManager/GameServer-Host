@@ -7,6 +7,7 @@ using GameServer.Core.Settings;
 using GameServer.Data;
 using GameServer.Logger;
 using GameServer.Worker;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
@@ -42,9 +43,18 @@ namespace GameServer.Main
                 {"exit", (args) => Running = false}
             };
 
-            _dataProvider = new MongoDBProvider(settings.ProviderSettings);
-            _daemonWorker = new DockerWorker(settings.DaemonSettings, _dataProvider);
-            _performanceLogger = new PerformanceLogger(settings.LoggingSettings, _dataProvider);
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+                    .AddFilter("Microsoft", LogLevel.Warning)
+                    .AddFilter("System", LogLevel.Warning)
+                    .AddFilter("LoggingConsoleApp.Program", LogLevel.Debug);
+            });
+
+
+            _dataProvider = new MongoDBProvider(settings, loggerFactory.CreateLogger<MongoDBProvider>());
+            _daemonWorker = new DockerWorker(settings, _dataProvider, loggerFactory.CreateLogger<DockerWorker>());
+            _performanceLogger = new PerformanceLogger(settings, _dataProvider, loggerFactory.CreateLogger<PerformanceLogger>());
         }
 
         private void Help(string[] obj)

@@ -3,7 +3,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace GameServer.Core.Settings
 {
-    public class GameServerSettings
+    public class GameServerSettings : IGameServerSettings
     {
         public DataProviderSettings ProviderSettings { get; set; }
         public LoggingSettings LoggingSettings { get; set; }

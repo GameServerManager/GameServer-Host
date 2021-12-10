@@ -16,7 +16,7 @@ service LoggerAPI {
   // Sends a greeting
   rpc StartPerformanceLogger(StartLoggerRequest) returns(google.protobuf.Empty);
   rpc StopPerformanceLogger(StopLoggerRequest) returns(google.protobuf.Empty);
-  rpc GetHistory(GetHistoryRequest) returns(HistoryList);
+  rpc GetHistory(GetHistoryRequest) returns(History);
 }
 
 message StartLoggerRequest{
@@ -32,14 +32,31 @@ message GetHistoryRequest{
 }
 
 message DataPoint{
-	int64 timeStamp = 1;
-	string value = 2;
+	int64 Time = 1;
+	CpuStats CPU = 2;
+	DiskStats Disk = 3;
+	MemoryStats RAM = 4;
+}
+
+message CpuStats{
+	int64 CpuDelta = 1;
+	int64 SystemCpuDelta = 2;
+	int64 NumberCpus = 3;
+}
+
+message DiskStats{
+	int64 ReadCountNormalized = 1;
+	int64 ReadSizeBytes = 2;
+	int64 WriteCountNormalized = 3;
+	int64 WriteSizeBytes = 4;
+}
+
+message MemoryStats{
+	int64 UsedMemory = 1;
+	int64 AvailableMemory = 2;
+
 }
 
 message History{
-	repeated DataPoint id = 1;
-}
-
-message HistoryList{
-	repeated History history= 1;
+	repeated DataPoint history= 1;
 }

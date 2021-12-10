@@ -121,7 +121,6 @@ namespace GameServer.Worker
                 if (res.Count != 0)
                     NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString()));
             } while (!res.EOF);
-
         }
 
         private void OnOutStreamMessage(object sender, OutEventArgs e)
