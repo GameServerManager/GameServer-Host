@@ -20,7 +20,15 @@ namespace GameServer.Host.Api.Services
 
         public async override Task Attach(AttachRequest request, IServerStreamWriter<StdOut> responseStream, ServerCallContext context)
         {
-            _daemonWorker.AttachServer(request.Id, (msg) => responseStream.WriteAsync(new StdOut() { Msg = msg } ));
+            _daemonWorker.AttachServer(request.Id, (msg) => {
+                responseStream.WriteAsync(new StdOut() { Msg = msg });
+            });
+
+            while (!context.CancellationToken.IsCancellationRequested)
+            {
+                // Avoid pegging CPU
+                await Task.Delay(100);
+            }
         }
 
         public async override Task<Server> Get(ServerRequest request, ServerCallContext context)

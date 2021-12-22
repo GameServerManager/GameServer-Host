@@ -36,7 +36,7 @@ namespace GameServer.Worker
             _logger.LogDebug($"Getting Server {id}");
             if (ContainerCache.TryGetValue(id, out var container))
                 return container;
-            _logger.LogDebug(new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty), "Container not Found");
+
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 
@@ -46,62 +46,87 @@ namespace GameServer.Worker
             if (ContainerCache.TryGetValue(id, out var container))
                 return await container.GetStatus();
 
-            _logger.LogDebug(new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty), "Container not Found");
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 
         public async Task<IList<string>> ImportServer(ServerConfig config)
         {
+            _logger.LogDebug($"Import Server");
             var warnings = DockerContainer.FromConfig(client, config, out var container);
             ContainerCache.Add(container.ID, container);
             await DataProvider.SaveServer(new ServerEntity(container.ID) { Config = config, Log = "" }) ;
             container.NewOutStreamMessage += OnNewOut;
+            _logger.LogDebug($"Installing Server {container.ID}");
             await container.Install();
+            _logger.LogDebug($"Server {container.ID} installed");
+
+            if (warnings.Count != 0)
+                _logger.LogWarning($"Import Warning:");
+                
+            foreach (var warning in warnings)
+            {
+                _logger.LogWarning($"    {warning}");
+            }
             return warnings;
         }
 
         public async Task StartServer(string id)
         {
+            _logger.LogDebug($"Starting Server {id}");
+
             if (ContainerCache.TryGetValue(id, out var container))
                 await container.Start();
         }
 
         public async Task<IServer[]> GetAllServer()
         {
-            return ContainerCache.Values.ToArray();
+            var containers = ContainerCache.Values.ToArray();
+            _logger.LogDebug($"Server Count {containers.Length}");
+            return containers;
         }
 
         public async Task StopServer(string id)
         {
+            _logger.LogDebug($"Stopping Server {id}");
+
             if (ContainerCache.TryGetValue(id, out var container))
                 await container.Stop();
         }
 
         public async Task<string> GetServerLogs(string id)
         {
+            _logger.LogDebug($"Server Logs {id}:");
+
             if (ContainerCache.TryGetValue(id, out var container))
-                return container.GetLogs().stdout;
+            {
+                var logs = container.GetLogs().stdout;
+
+                _logger.LogDebug($"    {logs}");
+
+                return logs;
+            }
 
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 
         public async Task Update(string id)
         {
+            _logger.LogDebug($"Updating Server {id}:");
+
             if (ContainerCache.TryGetValue(id, out var container))
                 await container.Update();
         }
 
         public void AttachServer(string id, Action<string> callback)
         {
+            _logger.LogDebug($"Attatched Server {id}:");
+
             if (!ContainerCache.TryGetValue(id, out var container))
                 throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
-
-            Console.WriteLine($"{container.GetLogs().stdout}");
 
             container.NewOutStreamMessage += (s, e) =>
             {
                 callback(e.Message);
-                Console.Write($"{e.Message}");
             };
         }
 
@@ -115,13 +140,16 @@ namespace GameServer.Worker
             var dbContainers = (await DataProvider.GetAllServerID()).ToList();
 
             List<Task> pool = new();
+            _logger.LogDebug($"Init Cache");
+            _logger.LogDebug($"{dbContainers.Count} found in Database");
+            _logger.LogDebug($"{containerRequest.Count} found on Worker Host");
 
             for (int i = 0; i < containerRequest.Count; i++)
             {
                 string id = containerRequest[i].ID;
                 if (!dbContainers.Remove(id))
                 {
-                    Console.WriteLine($"[Warning] Not in Database: {id}");
+                    _logger.LogWarning($"Not in Database: {id}");
                     continue;
                 }
 
@@ -133,7 +161,7 @@ namespace GameServer.Worker
             }
 
             foreach (var notTraced in dbContainers)
-                Console.WriteLine($"[Warning] Not Tracked Import Again{notTraced}");
+                _logger.LogWarning($"Not Tracked Import Again{notTraced}");
 
             await Task.WhenAll(pool);
         }
@@ -143,6 +171,7 @@ namespace GameServer.Worker
             var s = sender as IServer;
 
             DataProvider.AppendLog(s.ID, e.Message);
+            _logger.LogDebug($"{s.ID}: {e.Message}");
         }
 
         public void Dispose()
