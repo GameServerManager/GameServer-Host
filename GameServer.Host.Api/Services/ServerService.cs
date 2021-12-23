@@ -20,8 +20,13 @@ namespace GameServer.Host.Api.Services
 
         public async override Task Attach(AttachRequest request, IServerStreamWriter<StdOut> responseStream, ServerCallContext context)
         {
-            _daemonWorker.AttachServer(request.Id, (msg) => {
-                responseStream.WriteAsync(new StdOut() { Msg = msg });
+            _daemonWorker.AttachServer(request.Id, (execID, scriptName, target, message) => {
+                responseStream.WriteAsync(new StdOut() {
+                    ExecID = execID, 
+                    ScriptName = scriptName, 
+                    Target = target.ToString(),
+                    Message = message
+                });
             });
 
             while (!context.CancellationToken.IsCancellationRequested)
@@ -67,13 +72,30 @@ namespace GameServer.Host.Api.Services
             return sList;
         }
 
-        public async override Task<ServerLog> GetLog(LogRequest request, ServerCallContext context)
+        public async override Task<Logs> GetLog(LogRequest request, ServerCallContext context)
         {
             var log = await _daemonWorker.GetServerLogs(request.Id);
-            return new Api.ServerLog()
+            var logs = new Api.Logs();
+
+            foreach (var OutputByName in log)
             {
-                Log = log
-            };
+                var serverLogs = new ServerLog()
+                {
+                    ScriptName = OutputByName.Key
+                };
+                foreach (var OutputByID in OutputByName.Value)
+                {
+                    serverLogs.ScriptLogs.Add(new ScriptLog()
+                    {
+                        ExecID = OutputByID.Key,
+                        Stderr = OutputByID.Value.stderr,
+                        StdOut = OutputByID.Value.stdout
+                    });
+                }
+                logs.ScriptLogs.Add(serverLogs);
+            }
+
+            return logs;
         }
 
         public async override Task Import(ImportRequest request, IServerStreamWriter<StdOut> responseStream, ServerCallContext context)
@@ -141,8 +163,6 @@ namespace GameServer.Host.Api.Services
             config.Variables = vars.ToArray();
 
             var id = await _daemonWorker.ImportServer(config);
-
-            await responseStream.WriteAsync(new StdOut() { Msg = "done" });
         }
 
         public async override Task<Status> Start(StartRequest request, ServerCallContext context)

@@ -12,7 +12,7 @@ service ServerAPI {
   rpc Start(StartRequest) returns (Status); 
   rpc Stop(StopRequest) returns (Status); 
   rpc Update(UpdateRequest) returns (google.protobuf.Empty); 
-  rpc GetLog(LogRequest) returns (ServerLog); 
+  rpc GetLog(LogRequest) returns (Logs); 
   rpc Attach (AttachRequest) returns (stream StdOut); 
 }
 
@@ -94,13 +94,26 @@ message ServerList {
 }
 
 message StdOut{
-	string msg = 1;
+	string execID = 1;
+	string scriptName = 2;
+	string target = 3;
+	string message = 4;
 }
 
 message Status {
 	string status = 1;
 }
 
+message Logs{
+	repeated ServerLog scriptLogs = 1;
+}
 message ServerLog{
-	string log = 1;
+	string scriptName = 1;
+	repeated ScriptLog scriptLogs = 2;
+}
+
+message ScriptLog{
+	string execID = 1;
+	string StdOut = 3;
+	string stderr = 4;
 }

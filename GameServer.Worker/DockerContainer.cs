@@ -18,9 +18,9 @@ namespace GameServer.Worker
         public IList<string> Names { get; set; }
         public event IServer.NewOutHandler NewOutStreamMessage;
         private DockerClient Client { get; }
-        private string StdoutCache { get; set; } = "";
-        private string StderrCache { get; set; } = "";
 
+        private IOCache ioCache { get; } = new IOCache();
+        
         public DockerContainer(DockerClient client, string id, List<string>? env)
         {
             Client = client;
@@ -89,9 +89,9 @@ namespace GameServer.Worker
             await ExecFromName("UpdateScript");
         }
 
-        public (string stderr, string stdout) GetLogs()
+        public Dictionary<string, Dictionary<string, (string stderr, string stdout)>> GetLogs()
         {
-            return (StderrCache, StdoutCache);
+            return ioCache.GetAll();
         }
 
         private async Task ExecFromName(string name, string endpoint = "/bin/bash")
@@ -119,20 +119,13 @@ namespace GameServer.Worker
                 res = await stream.ReadOutputAsync(buffer, 0, 1, token.Token);
 
                 if (res.Count != 0)
-                    NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString()));
+                    NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString(), exec.ID, name));
             } while (!res.EOF);
         }
 
         private void OnOutStreamMessage(object sender, OutEventArgs e)
         {
-            if (e.Target == OutEventArgs.TargetStream.StandardOut)
-            {
-                StdoutCache += e.Message;
-            }
-            else if (e.Target == OutEventArgs.TargetStream.StandardError)
-            {
-                StderrCache += e.Message;
-            }
+            ioCache.Add(e.ExecID, e.ScriptName, e.Target, e.Message);
         }
 
         public void Dispose()

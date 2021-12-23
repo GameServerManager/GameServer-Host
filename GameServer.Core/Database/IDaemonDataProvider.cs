@@ -7,6 +7,6 @@ namespace GameServer.Core.Database
         Task<IEnumerable<string>> GetAllServerID();
         Task<ServerEntity> ServerByID(string id);
         Task SaveServer(ServerEntity server);
-        Task AppendLog(string id, string message);
+        Task AppendLog(string id, string scriptName, string execID, string targetStream, string message);
     }
 }

@@ -54,7 +54,7 @@ namespace GameServer.Worker
             _logger.LogDebug($"Import Server");
             var warnings = DockerContainer.FromConfig(client, config, out var container);
             ContainerCache.Add(container.ID, container);
-            await DataProvider.SaveServer(new ServerEntity(container.ID) { Config = config, Log = "" }) ;
+            await DataProvider.SaveServer(new ServerEntity(container.ID) { Config = config}) ;
             container.NewOutStreamMessage += OnNewOut;
             _logger.LogDebug($"Installing Server {container.ID}");
             await container.Install();
@@ -93,15 +93,29 @@ namespace GameServer.Worker
                 await container.Stop();
         }
 
-        public async Task<string> GetServerLogs(string id)
+        public async Task<Dictionary<string, Dictionary<string, (string stderr, string stdout)>>> GetServerLogs(string id)
         {
             _logger.LogDebug($"Server Logs {id}:");
 
             if (ContainerCache.TryGetValue(id, out var container))
             {
-                var logs = container.GetLogs().stdout;
+                var logs = container.GetLogs();
 
-                _logger.LogDebug($"    {logs}");
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    foreach (var OutByName in logs)
+                    {
+                        _logger.LogDebug($"    Name: {OutByName.Key}:");
+
+                        foreach (var OutByExec in OutByName.Value)
+                        {
+                            _logger.LogDebug($"    -ID: {OutByExec.Key}:");
+                            _logger.LogDebug($"        Stdout: {OutByExec.Value.stdout}:");
+                            _logger.LogDebug($"        Stderr: {OutByExec.Value.stderr}:");
+
+                        }
+                    }
+                }
 
                 return logs;
             }
@@ -117,7 +131,7 @@ namespace GameServer.Worker
                 await container.Update();
         }
 
-        public void AttachServer(string id, Action<string> callback)
+        public void AttachServer(string id, Action<string, string, OutEventArgs.TargetStream, string> callback)
         {
             _logger.LogDebug($"Attatched Server {id}:");
 
@@ -126,7 +140,7 @@ namespace GameServer.Worker
 
             container.NewOutStreamMessage += (s, e) =>
             {
-                callback(e.Message);
+                callback(e.ScriptName, e.ExecID, e.Target, e.Message);
             };
         }
 
@@ -170,8 +184,7 @@ namespace GameServer.Worker
         {
             var s = sender as IServer;
 
-            DataProvider.AppendLog(s.ID, e.Message);
-            _logger.LogDebug($"{s.ID}: {e.Message}");
+            DataProvider.AppendLog(s.ID,e.ScriptName, e.ExecID, e.Target.ToString(), e.Message);
         }
 
         public void Dispose()

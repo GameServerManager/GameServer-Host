@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using System.Linq.Expressions;
 
 namespace GameServer.Data
 {
@@ -13,6 +14,8 @@ namespace GameServer.Data
     {
         private readonly MongoClient _dbClient;
         private readonly string _connectionString;
+        private object _ServerLogLock = new();
+        private object _ScriptLogLock = new();
 
         public IMongoCollection<ServerEntity> ServerCollection { get; private set; }
         public Dictionary<string, IMongoCollection<DataPoint>> LoggerCollections { get; private set; } = new();
@@ -60,12 +63,89 @@ namespace GameServer.Data
 
         }
 
-        public async Task AppendLog(string id, string message)
+        public async Task AppendLog(string id, string scriptName, string execID, string targetStream, string message)
         {
-            var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID, id);
-            var update = Builders<ServerEntity>.Update.Pipeline(UpdateQuery(message));
+            //var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID , id);
+            
+            var filter = Builders<ServerEntity>.Filter;
+            var studentIdAndCourseIdFilter = filter.Eq(x => x.ID, id);
+            // find student with id and course id
+            lock (_ServerLogLock)
+            {
 
-            await ServerCollection.UpdateOneAsync(filter, update);
+                var ServerLogs = ServerCollection.Find(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName)).SingleOrDefault();
+
+                if (ServerLogs == null)
+                {
+                    var update2 = Builders<ServerEntity>.Update;
+                    var courseLevelSetter2 = update2.AddToSet("Log", new ServerLog() { ScriptName = scriptName});
+                    var res1 = ServerCollection.UpdateOne(studentIdAndCourseIdFilter, courseLevelSetter2);
+                }
+            }
+
+            lock (_ScriptLogLock)
+            {
+                var ScriptLogs = ServerCollection.Find(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName) & filter.Where(x => x.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Any())).SingleOrDefault();
+
+                var update1 = Builders<ServerEntity>.Update;
+                UpdateDefinition<ServerEntity> courseLevelSetter1;
+                if (ScriptLogs == null)
+                {
+                    courseLevelSetter1 = update1.AddToSet("Log.$[n].ScriptLogs", new ScriptLog() { ID = execID });
+                    var res2 = ServerCollection.UpdateOne(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter1, new UpdateOptions()
+                    {
+                        ArrayFilters = new List<ArrayFilterDefinition>
+                        {
+                            new JsonArrayFilterDefinition<ServerLog>("{'n.ScriptName': '" + scriptName + "'}"),
+                        }
+                    });
+                   
+                    var courseLevelSetter2 = update1.Set("Log.$[n].ScriptLogs.$[t].StdOut", message);
+                    var res3 = ServerCollection.UpdateOne(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter2, new UpdateOptions() 
+                    { 
+                        ArrayFilters = new List<ArrayFilterDefinition>
+                        {
+                            new JsonArrayFilterDefinition<ServerLog>("{'n.ScriptName': '" + scriptName + "'}"),
+                            new JsonArrayFilterDefinition<ScriptLog>("{'t.ID': '" + execID + "'}")
+                        }
+                    });
+
+                }
+                else
+                {
+                    var a = ScriptLogs.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Select(p => p.ScriptLogs).First().First();
+                    var courseLevelSetter2 = update1.Set("Log.$[n].ScriptLogs.$[t].StdOut", a.StdOut + message);
+                    var res3 = ServerCollection.UpdateOne(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter2, new UpdateOptions()
+                    {
+                        ArrayFilters = new List<ArrayFilterDefinition>
+                        {
+                            new JsonArrayFilterDefinition<ServerLog>("{'n.ScriptName': '" + scriptName + "'}"),
+                            new JsonArrayFilterDefinition<ScriptLog>("{'t.ID': '" + execID + "'}")
+                        }
+                    });
+                    //if (targetStream == "StandardOut")
+                    //{
+                    //    courseLevelSetter1 = update1.Set("Log.$.ScriptLogs.$.StdOut", ScriptLogs. message );
+                    //}
+                    //else
+                    //{
+                    //    courseLevelSetter1 = update1.AddToSet("Log.$.ScriptLogs.$.StdErr", new ScriptLog() { ID = execID, StdErr = message, StdOut = "" });
+                    //}
+                }
+            }
+
+            // update with positional operator
+            //var update = Builders<ServerEntity>.Update;
+            //var courseLevelSetter = update.AddToSet("Log.$.ScriptLogs", new ScriptLog()
+            //{
+            //    ID = execID,
+            //    StdOut = message
+            //});
+            //var res = ServerCollection.UpdateOne(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter);
+            //var update = Builders<ServerEntity>.Update.Pipeline(UpdateQuery(scriptName, execID, targetStream, message));
+
+
+            //var res = await ServerCollection.UpdateOneAsync(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), update);
         }
         #endregion
 
@@ -87,21 +167,40 @@ namespace GameServer.Data
         {
             Disconnect();
         }
-        private BsonDocument[] UpdateQuery(string message)
+        private BsonDocument[] UpdateQuery(string scriptName, string execID, string targetStream, string message)
         {
-            return new BsonDocument[]
+            if (targetStream == "StandardOut")
             {
-                BsonDocument.Parse(
-                    @"
-                    { 
-                        $set: {
-                            Log:
+                return new BsonDocument[]
+                {
+                    BsonDocument.Parse(
+                        @"
+                        { 
+                            $set: { 
+                                'Log.$[elem1].ScriptLogs.$[elem2].StdOut': 
                                 { 
-                                $concat:[ '$Log', '" + message + @"' ] 
+                                    $concat:[ '$Log.$[elem1].ScriptLogs.$[elem2].StdOut', '" + message + @"' ] 
+                                } 
                             }
-                        }
-                    }"
-            )};
+                        }")
+                };
+            }
+            else
+            {
+                return new BsonDocument[]
+                {
+                    BsonDocument.Parse(
+                        @"
+                        { 
+                            $set: { 
+                                'Log.$[elem1].ScriptLogs.$[elem2].StdOut': 
+                                { 
+                                    $concat:[ '$Log.$[elem1].ScriptLogs.$[elem2].StdOut', '" + message + @"' ] 
+                                } 
+                            }
+                        }")
+                };
+            }
         }
 
         private async void InitLoggerDatabase()
