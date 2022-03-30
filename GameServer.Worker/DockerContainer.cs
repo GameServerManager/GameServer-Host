@@ -138,8 +138,10 @@ namespace GameServer.Worker
                 res = await stream.ReadOutputAsync(buffer, 0, 1, token.Token);
 
                 if (res.Count != 0)
-                    NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString(), exec.ID, name));
+                    NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString(), exec.ID, name, "message"));
             } while (!res.EOF);
+
+            NewOutStreamMessage.Invoke(this, new OutEventArgs("", "None", exec.ID, name, "closed"));
             StdIn.Remove(exec.ID);
         }
 

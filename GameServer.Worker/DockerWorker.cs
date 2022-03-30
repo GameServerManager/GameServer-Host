@@ -131,7 +131,7 @@ namespace GameServer.Worker
                 await container.Update();
         }
 
-        public void AttachServer(string id, Action<string, string, OutEventArgs.TargetStream, string> callback)
+        public void AttachServer(string id, Action<string, string, OutEventArgs.TargetStream, string, string> callback)
         {
             _logger.LogDebug($"Attatched Server {id}:");
 
@@ -140,7 +140,7 @@ namespace GameServer.Worker
 
             container.NewOutStreamMessage += (s, e) =>
             {
-                callback(e.ScriptName, e.ExecID, e.Target, e.Message);
+                callback(e.ExecID, e.ScriptName, e.Target, e.Message, e.Type);
             };
         }
 

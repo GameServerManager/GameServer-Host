@@ -23,13 +23,14 @@ namespace GameServer.Host.Api.Services
 
         public async override Task Attach(AttachRequest request, IServerStreamWriter<StdOut> responseStream, ServerCallContext context)
         {
-            _daemonWorker.AttachServer(request.Id, (execID, scriptName, target, message) => {
+            _daemonWorker.AttachServer(request.Id, (execID, scriptName, target, message, type) => {
                 responseStream.WriteAsync(new StdOut()
                 {
                     ExecID = execID,
                     ScriptName = scriptName,
                     Target = target.ToString(),
-                    Message = message
+                    Message = message,
+                    Type = type
                 });
             });
 
@@ -95,6 +96,32 @@ namespace GameServer.Host.Api.Services
                         ExecID = OutputByID.ID,
                         Stderr = OutputByID.StdErr,
                         StdOut = OutputByID.StdOut
+                    });
+                }
+                logs.ScriptLogs.Add(serverLogs);
+            }
+
+            return logs;
+        }
+
+        public async override Task<Logs> GetActiveLogs(LogRequest request, ServerCallContext context)
+        {
+            var log = await _daemonWorker.GetServerLogs(request.Id);
+            var logs = new Api.Logs();
+
+            foreach (var OutputByName in log)
+            {
+                var serverLogs = new ServerLog()
+                {
+                    ScriptName = OutputByName.Key
+                };
+                foreach (var OutputByID in OutputByName.Value)
+                {
+                    serverLogs.ScriptLogs.Add(new ScriptLog()
+                    {
+                        ExecID = OutputByID.Key,
+                        Stderr = OutputByID.Value.stderr,
+                        StdOut = OutputByID.Value.stdout
                     });
                 }
                 logs.ScriptLogs.Add(serverLogs);

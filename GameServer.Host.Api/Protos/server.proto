@@ -13,6 +13,7 @@ service ServerAPI {
   rpc Stop(StopRequest) returns (Status); 
   rpc Update(UpdateRequest) returns (google.protobuf.Empty); 
   rpc GetLog(LogRequest) returns (Logs); 
+  rpc GetActiveLogs(LogRequest) returns (Logs); 
   rpc Attach (AttachRequest) returns (stream StdOut); 
   rpc SendCommand (SendCommandRequest) returns (google.protobuf.Empty); 
 }
@@ -105,6 +106,7 @@ message StdOut{
 	string scriptName = 2;
 	string target = 3;
 	string message = 4;
+	string Type = 5;
 }
 
 message Status {

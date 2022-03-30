@@ -160,7 +160,17 @@ namespace GameServer.Main
                 return;
             }
 
-            _daemonWorker.AttachServer(args[0], (execID, scriptName, target, message) => Console.WriteLine(message));
+            _daemonWorker.AttachServer(args[0], (execID, scriptName, target, message, type) =>
+            {
+                if (type == "message")
+                {
+                    Console.WriteLine(message);
+                }
+                else if (type == "closed")
+                {
+                    Console.WriteLine("Attach closed");
+                }
+            });
         }
 
         private async void ImportServer(string[] args)

@@ -8,27 +8,25 @@ namespace GameServer.Worker
 
         internal void Add(string execID, string scriptName, OutEventArgs.TargetStream target, string message)
         {
-            var containsScriptName = Cache.TryGetValue(scriptName, out var ScriptOut);
+            var containsScriptName = Cache.ContainsKey(scriptName);
             if (!containsScriptName)
             {
-                ScriptOut = new Dictionary<string, (string stderr, string stdout)>();
-                Cache.Add(scriptName, ScriptOut);
+                Cache.Add(scriptName, new Dictionary<string, (string stderr, string stdout)>());
             }
-            var contiansExec = ScriptOut.TryGetValue(execID, out var ExecOut);
 
-            if (!contiansExec)
+
+            if (!Cache[scriptName].ContainsKey(execID))
             {
-                ExecOut = ("","");
-                ScriptOut.Add(execID, ExecOut);
+                Cache[scriptName].Add(execID, ("", ""));
             }
 
             if (target == OutEventArgs.TargetStream.StandardOut)
             {
-                ExecOut.stdout += message;
+                Cache[scriptName][execID] = new (Cache[scriptName][execID].stderr, Cache[scriptName][execID].stdout + message);
             }
             else if (target == OutEventArgs.TargetStream.StandardError)
             {
-                ExecOut.stderr += message;
+                Cache[scriptName][execID] = new (Cache[scriptName][execID].stderr + message, Cache[scriptName][execID].stdout);
             }
         }
 
