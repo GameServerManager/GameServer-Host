@@ -196,5 +196,13 @@ namespace GameServer.Worker
                 container?.Dispose();
             }
         }
+
+        public async Task SendCommand(string containerID, string execId, string command)
+        {
+            _logger.LogDebug($"Updating Server {containerID}:");
+
+            if (ContainerCache.TryGetValue(containerID, out var container))
+                await container.Interact(execId, command);
+        }
     }
 }

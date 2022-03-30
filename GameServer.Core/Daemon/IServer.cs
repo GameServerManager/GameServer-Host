@@ -16,6 +16,7 @@ namespace GameServer.Core.Daemon
         Task Install();
         Task Update();
         Task Exec(Script script, string name);
+        Task Interact(string execId, string command);
         Task<ServerStatus> GetStatus();
         Dictionary<string, Dictionary<string, (string stderr, string stdout)>> GetLogs();
     }

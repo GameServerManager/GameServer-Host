@@ -14,6 +14,7 @@ service ServerAPI {
   rpc Update(UpdateRequest) returns (google.protobuf.Empty); 
   rpc GetLog(LogRequest) returns (Logs); 
   rpc Attach (AttachRequest) returns (stream StdOut); 
+  rpc SendCommand (SendCommandRequest) returns (google.protobuf.Empty); 
 }
 
 message ServerRequest{
@@ -80,6 +81,12 @@ message LogRequest{
 
 message AttachRequest{
 	string id = 1;
+}
+
+message SendCommandRequest{
+	string containerID = 1;
+	string execId = 2;
+	string command = 3;
 }
 
 message Server{

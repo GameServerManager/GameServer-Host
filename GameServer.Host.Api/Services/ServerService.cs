@@ -1,5 +1,6 @@
 using GameServer.Core.Daemon;
 using GameServer.Core.Daemon.Config;
+using GameServer.Core.Database;
 using GameServer.Host.Api;
 using GameServer.Worker;
 using Google.Protobuf.WellKnownTypes;
@@ -11,19 +12,22 @@ namespace GameServer.Host.Api.Services
     {
         private readonly ILogger<ServerService> _logger;
         private readonly IDaemonWorker _daemonWorker;
+        private readonly IDaemonDataProvider _daemonDataProvider;
 
-        public ServerService(ILogger<ServerService> logger, IDaemonWorker daemonWorker)
+        public ServerService(ILogger<ServerService> logger, IDaemonWorker daemonWorker, IDaemonDataProvider daemonDataProvider)
         {
             _daemonWorker = daemonWorker;
+            _daemonDataProvider = daemonDataProvider;
             _logger = logger;
         }
 
         public async override Task Attach(AttachRequest request, IServerStreamWriter<StdOut> responseStream, ServerCallContext context)
         {
             _daemonWorker.AttachServer(request.Id, (execID, scriptName, target, message) => {
-                responseStream.WriteAsync(new StdOut() {
-                    ExecID = execID, 
-                    ScriptName = scriptName, 
+                responseStream.WriteAsync(new StdOut()
+                {
+                    ExecID = execID,
+                    ScriptName = scriptName,
                     Target = target.ToString(),
                     Message = message
                 });
@@ -74,22 +78,23 @@ namespace GameServer.Host.Api.Services
 
         public async override Task<Logs> GetLog(LogRequest request, ServerCallContext context)
         {
-            var log = await _daemonWorker.GetServerLogs(request.Id);
+            var server = await _daemonDataProvider.ServerByID(request.Id);
+            var log = server.Log;
             var logs = new Api.Logs();
 
             foreach (var OutputByName in log)
             {
                 var serverLogs = new ServerLog()
                 {
-                    ScriptName = OutputByName.Key
+                    ScriptName = OutputByName.ScriptName
                 };
-                foreach (var OutputByID in OutputByName.Value)
+                foreach (var OutputByID in OutputByName.ScriptLogs)
                 {
                     serverLogs.ScriptLogs.Add(new ScriptLog()
                     {
-                        ExecID = OutputByID.Key,
-                        Stderr = OutputByID.Value.stderr,
-                        StdOut = OutputByID.Value.stdout
+                        ExecID = OutputByID.ID,
+                        Stderr = OutputByID.StdErr,
+                        StdOut = OutputByID.StdOut
                     });
                 }
                 logs.ScriptLogs.Add(serverLogs);
@@ -180,6 +185,13 @@ namespace GameServer.Host.Api.Services
         public async override Task<Empty> Update(UpdateRequest request, ServerCallContext context)
         {
             await _daemonWorker.Update(request.Id);
+            return new Empty();
+        }
+
+        public async override Task<Empty> SendCommand(SendCommandRequest request, ServerCallContext context)
+        {
+            await _daemonWorker.SendCommand(request.ContainerID, request.ExecId, request.Command);
+
             return new Empty();
         }
     }

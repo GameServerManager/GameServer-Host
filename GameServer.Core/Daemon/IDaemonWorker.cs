@@ -15,5 +15,6 @@ namespace GameServer.Core.Daemon
         Task StopServer(string id);
         Task Update(string id);
         void AttachServer(string id, Action<string, string, OutEventArgs.TargetStream, string> callback);
+        Task SendCommand(string containerID, string execId, string command);
     }
 }

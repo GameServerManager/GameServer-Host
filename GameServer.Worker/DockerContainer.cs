@@ -4,6 +4,7 @@ using GameServer.Core.Daemon.Config;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,7 +21,7 @@ namespace GameServer.Worker
         private DockerClient Client { get; }
 
         private IOCache ioCache { get; } = new IOCache();
-        
+        private Dictionary<string, MultiplexedStream> StdIn = new Dictionary<string, MultiplexedStream>();
         public DockerContainer(DockerClient client, string id, List<string>? env)
         {
             Client = client;
@@ -94,6 +95,25 @@ namespace GameServer.Worker
             return ioCache.GetAll();
         }
 
+        public async Task Interact(string execId, string command)
+        {
+            var info = await Client.Exec.InspectContainerExecAsync(execId);
+
+            if (info.ContainerID != ID)
+                throw new ApplicationException("Wrong Container ID");
+            if (!info.Running)
+                return;
+
+            if (StdIn.TryGetValue(execId, out var stream))
+            {
+                var token = new CancellationTokenSource();
+
+                byte[] buffer = Encoding.ASCII.GetBytes(command);
+                await stream.WriteAsync(buffer, 0, buffer.Length, token.Token);
+            }
+
+        }
+
         private async Task ExecFromName(string name, string endpoint = "/bin/bash")
         {
             var createParams = new Docker.DotNet.Models.ContainerExecCreateParameters()
@@ -107,13 +127,12 @@ namespace GameServer.Worker
             };
 
             var exec = await Client.Exec.ExecCreateContainerAsync(ID, createParams);
-
             var token = new CancellationTokenSource();
             var stream = await Client.Exec.StartAndAttachContainerExecAsync(exec.ID, true, token.Token);
 
             var buffer = new byte[1];
             MultiplexedStream.ReadResult res;
-
+            StdIn.Add(exec.ID, stream);
             do
             {
                 res = await stream.ReadOutputAsync(buffer, 0, 1, token.Token);
@@ -121,6 +140,7 @@ namespace GameServer.Worker
                 if (res.Count != 0)
                     NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString(), exec.ID, name));
             } while (!res.EOF);
+            StdIn.Remove(exec.ID);
         }
 
         private void OnOutStreamMessage(object sender, OutEventArgs e)

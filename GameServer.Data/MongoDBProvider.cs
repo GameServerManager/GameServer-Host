@@ -68,31 +68,31 @@ namespace GameServer.Data
             //var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID , id);
             
             var filter = Builders<ServerEntity>.Filter;
-            var studentIdAndCourseIdFilter = filter.Eq(x => x.ID, id);
+            var serverIdFilter = filter.Eq(x => x.ID, id);
             // find student with id and course id
             lock (_ServerLogLock)
             {
 
-                var ServerLogs = ServerCollection.Find(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName)).SingleOrDefault();
+                var ServerLogs = ServerCollection.Find(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName)).SingleOrDefault();
 
                 if (ServerLogs == null)
                 {
                     var update2 = Builders<ServerEntity>.Update;
                     var courseLevelSetter2 = update2.AddToSet("Log", new ServerLog() { ScriptName = scriptName});
-                    var res1 = ServerCollection.UpdateOne(studentIdAndCourseIdFilter, courseLevelSetter2);
+                    var res1 = ServerCollection.UpdateOne(serverIdFilter, courseLevelSetter2);
                 }
             }
 
             lock (_ScriptLogLock)
             {
-                var ScriptLogs = ServerCollection.Find(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName) & filter.Where(x => x.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Any())).SingleOrDefault();
+                var ScriptLogs = ServerCollection.Find(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName) & filter.Where(x => x.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Any())).SingleOrDefault();
 
                 var update1 = Builders<ServerEntity>.Update;
                 UpdateDefinition<ServerEntity> courseLevelSetter1;
                 if (ScriptLogs == null)
                 {
                     courseLevelSetter1 = update1.AddToSet("Log.$[n].ScriptLogs", new ScriptLog() { ID = execID });
-                    var res2 = ServerCollection.UpdateOne(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter1, new UpdateOptions()
+                    var res2 = ServerCollection.UpdateOne(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter1, new UpdateOptions()
                     {
                         ArrayFilters = new List<ArrayFilterDefinition>
                         {
@@ -101,7 +101,7 @@ namespace GameServer.Data
                     });
                    
                     var courseLevelSetter2 = update1.Set("Log.$[n].ScriptLogs.$[t].StdOut", message);
-                    var res3 = ServerCollection.UpdateOne(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter2, new UpdateOptions() 
+                    var res3 = ServerCollection.UpdateOne(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter2, new UpdateOptions() 
                     { 
                         ArrayFilters = new List<ArrayFilterDefinition>
                         {
@@ -113,9 +113,11 @@ namespace GameServer.Data
                 }
                 else
                 {
-                    var a = ScriptLogs.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Select(p => p.ScriptLogs).First().First();
-                    var courseLevelSetter2 = update1.Set("Log.$[n].ScriptLogs.$[t].StdOut", a.StdOut + message);
-                    var res3 = ServerCollection.UpdateOne(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter2, new UpdateOptions()
+                    //var a = ScriptLogs.Log.Where(serverLog => serverLog.ScriptLogs.Where(consoleLog => consoleLog.ID == execID).First().ID == id).Select(p => p.ScriptLogs).First().First();
+                    var logs = ScriptLogs.Log.Where(l => l.ScriptName == scriptName).Select(l => l.ScriptLogs.Where(o => o.ID == execID).Select(o => o.StdOut)).First().First();
+                    //var b = ScriptLogs.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Select(p => p.ScriptLogs).First().First();
+                    var courseLevelSetter2 = update1.Set("Log.$[n].ScriptLogs.$[t].StdOut", logs + message);
+                    var res3 = ServerCollection.UpdateOne(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter2, new UpdateOptions()
                     {
                         ArrayFilters = new List<ArrayFilterDefinition>
                         {
