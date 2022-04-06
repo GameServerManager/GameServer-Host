@@ -34,5 +34,17 @@ namespace GameServer.Worker
         {
             return Cache;
         }
+
+        internal void Remove(string execID, string scriptName)
+        {
+            if (!Cache.TryGetValue(scriptName, out var execCaches))
+                return;
+            execCaches.Remove(execID);
+        }
+
+        internal void Clear()
+        {
+            Cache.Clear();
+        }
     }
 }

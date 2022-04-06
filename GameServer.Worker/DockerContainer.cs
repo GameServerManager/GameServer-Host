@@ -42,6 +42,11 @@ namespace GameServer.Worker
 
         public async Task Stop()
         {
+            foreach(var stdIn in StdIn.Keys)
+            {
+                NewOutStreamMessage.Invoke(this, new OutEventArgs("", "None", stdIn, "", "closed"));
+            }
+            ioCache.Clear();
             await Client.Containers.StopContainerAsync(ID, new Docker.DotNet.Models.ContainerStopParameters());
         }
 
@@ -147,7 +152,14 @@ namespace GameServer.Worker
 
         private void OnOutStreamMessage(object sender, OutEventArgs e)
         {
-            ioCache.Add(e.ExecID, e.ScriptName, e.Target, e.Message);
+            if (e.Type == "closed")
+            {
+                ioCache.Remove(e.ExecID, e.ScriptName);
+            }
+            else if (e.Type == "message")
+            {
+                ioCache.Add(e.ExecID, e.ScriptName, e.Target, e.Message);
+            }
         }
 
         public void Dispose()
