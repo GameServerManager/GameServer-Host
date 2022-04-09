@@ -130,7 +130,7 @@ namespace GameServer.Host.Api.Services
             return logs;
         }
 
-        public async override Task Import(ImportRequest request, IServerStreamWriter<StdOut> responseStream, ServerCallContext context)
+        public async override Task<ImportResponse> Import(ImportRequest request, ServerCallContext context)
         {
             var config = new ServerConfig()
             {
@@ -195,6 +195,8 @@ namespace GameServer.Host.Api.Services
             config.Variables = vars.ToArray();
 
             var id = await _daemonWorker.ImportServer(config);
+
+            return new ImportResponse() { ID = id };
         }
 
         public async override Task<Status> Start(StartRequest request, ServerCallContext context)

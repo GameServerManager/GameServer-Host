@@ -49,7 +49,7 @@ namespace GameServer.Worker
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 
-        public async Task<IList<string>> ImportServer(ServerConfig config)
+        public async Task<string> ImportServer(ServerConfig config)
         {
             _logger.LogDebug($"Import Server");
             var warnings = DockerContainer.FromConfig(client, config, out var container);
@@ -57,8 +57,7 @@ namespace GameServer.Worker
             await DataProvider.SaveServer(new ServerEntity(container.ID) { Config = config}) ;
             container.NewOutStreamMessage += OnNewOut;
             _logger.LogDebug($"Installing Server {container.ID}");
-            await container.Install();
-            _logger.LogDebug($"Server {container.ID} installed");
+            container.Install();
 
             if (warnings.Count != 0)
                 _logger.LogWarning($"Import Warning:");
@@ -67,7 +66,7 @@ namespace GameServer.Worker
             {
                 _logger.LogWarning($"    {warning}");
             }
-            return warnings;
+            return container.ID;
         }
 
         public async Task StartServer(string id)

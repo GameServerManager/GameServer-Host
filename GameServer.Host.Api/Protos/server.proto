@@ -8,7 +8,7 @@ service ServerAPI {
   // Sends a greeting
   rpc Get(ServerRequest) returns (Server); 
   rpc GetAll(google.protobuf.Empty) returns (ServerList); 
-  rpc Import(ImportRequest) returns (stream StdOut); 
+  rpc Import(ImportRequest) returns (ImportResponse); 
   rpc Start(StartRequest) returns (Status); 
   rpc Stop(StopRequest) returns (Status); 
   rpc Update(UpdateRequest) returns (google.protobuf.Empty); 
@@ -31,6 +31,10 @@ message ImportRequest{
 	repeated PortMap Ports = 6;
 	ServerScripts ContainerScripts  = 7;
 	repeated Variable Variables = 8;
+}
+
+message ImportResponse{
+	string ID = 1;
 }
 
 message MountingPoint{
