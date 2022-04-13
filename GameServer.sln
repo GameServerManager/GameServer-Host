@@ -15,7 +15,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Data", "GameServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Logger", "GameServer.Logger\GameServer.Logger.csproj", "{C3C3908A-6FBB-4DE2-A04B-983E94DCF409}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Host.Api", "GameServer.Host.Api\GameServer.Host.Api.csproj", "{994E13C2-65A3-4694-8427-EC2132746DB4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer.Host.Api", "GameServer.Host.Api\GameServer.Host.Api.csproj", "{994E13C2-65A3-4694-8427-EC2132746DB4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{26CF2B75-A75D-4AB0-B4A6-A06CA1BF5E44}"
+	ProjectSection(SolutionItems) = preProject
+		DockerDatabase\docker-compose.yml = DockerDatabase\docker-compose.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

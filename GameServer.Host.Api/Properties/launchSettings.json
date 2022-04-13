@@ -1,13 +1,21 @@
-﻿{
+{
   "profiles": {
     "GameServer.Host.Api": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": false,
-      "applicationUrl": "http://localhost:5055;https://localhost:7055",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "applicationUrl": "http://localhost:5055;https://localhost:7055",
+      "dotnetRunMessages": true
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "launchUrl": "https://localhost:7055",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5055;https://localhost:7055"
+      },
+      "distributionName": ""
     }
   }
 }

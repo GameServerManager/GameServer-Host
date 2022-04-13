@@ -105,6 +105,7 @@ namespace GameServer.Worker
                 throw new ApplicationException("Server folder alreadt exists change name");
 
             DirectoryInfo dir = Directory.CreateDirectory(path);
+            var invalidChars = Path.GetInvalidFileNameChars();
             DirectoryInfo scriptDir = Directory.CreateDirectory($@"{ dir.FullName }/scripts");
 
             List<string> binds = new()
@@ -116,6 +117,9 @@ namespace GameServer.Worker
             {
                 foreach (var mount in config.Mounts)
                 {
+                    if (mount.HostPath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }).Contains(".."))
+                        throw new ApplicationException("Client tries traversal Attack");
+
                     Directory.CreateDirectory($@"{dir.FullName}/{mount.HostPath}");
                     yield return $@"{dir.FullName}/{mount.HostPath}:{mount.ServerPath}";
                 }
@@ -123,6 +127,12 @@ namespace GameServer.Worker
 
             binds.AddRange(collection());
             return binds;
+        }
+
+        private static bool IsSubfolder(string parentPath, string childPath)
+        {
+
+            return false;
         }
 
         private static string GetServerRootPath()
