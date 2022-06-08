@@ -3,6 +3,7 @@ using GameServer.Core.Daemon;
 using GameServer.Core.Daemon.Config;
 using GameServer.Core.Database;
 using GameServer.Core.Database.Daemon;
+using GameServer.Core.Helpers;
 using GameServer.Core.Settings;
 using Microsoft.Extensions.Logging;
 using System;
@@ -17,6 +18,8 @@ namespace GameServer.Worker
         readonly Dictionary<string, DockerContainer> ContainerCache = new();
         private readonly DockerClient client;
         private readonly ILogger<DockerWorker> _logger;
+        private PerformanceLeakFinder AttachLogger = new PerformanceLeakFinder("Attach");
+        private PerformanceLeakFinder MongoDBLogger = new PerformanceLeakFinder("MongoDB");
 
         public IDaemonDataProvider DataProvider { get; }
 
@@ -139,7 +142,9 @@ namespace GameServer.Worker
 
             container.NewOutStreamMessage += (s, e) =>
             {
+                AttachLogger.Start();
                 callback(e.ExecID, e.ScriptName, e.Target, e.Message, e.Type);
+                AttachLogger.Stop();
             };
         }
 
@@ -182,8 +187,10 @@ namespace GameServer.Worker
         private void OnNewOut(object sender, OutEventArgs e)
         {
             var s = sender as IServer;
+            MongoDBLogger.Start();
 
             DataProvider.AppendLog(s.ID,e.ScriptName, e.ExecID, e.Target.ToString(), e.Message);
+            MongoDBLogger.Stop();
         }
 
         public void Dispose()

@@ -5,15 +5,16 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "http://localhost:5055;https://localhost:7055",
-      "dotnetRunMessages": true
+      "applicationUrl": "https://localhost:7055",
+      "dotnetRunMessages": true,
+      "nativeDebugging": true
     },
     "WSL": {
       "commandName": "WSL2",
       "launchUrl": "https://localhost:7055",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:5055;https://localhost:7055"
+        "ASPNETCORE_URLS": "https://localhost:7055"
       },
       "distributionName": ""
     }

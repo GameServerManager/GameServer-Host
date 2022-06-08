@@ -12,18 +12,19 @@ namespace GameServer.Data
 {
     public class MongoDBProvider : IDaemonDataProvider, ILoggerDataProvider
     {
-        private readonly MongoClient _dbClient;
+        internal readonly MongoClient _dbClient;
         private readonly string _connectionString;
         private object _ServerLogLock = new();
         private object _ScriptLogLock = new();
+        internal DataProviderSettings _settings;
 
-        public IMongoCollection<ServerEntity> ServerCollection { get; private set; }
-        public Dictionary<string, IMongoCollection<DataPoint>> LoggerCollections { get; private set; } = new();
+        internal IMongoCollection<ServerEntity> ServerCollection { get; private set; }
+        internal Dictionary<string, IMongoCollection<DataPoint>> LoggerCollections { get; private set; } = new();
 
         public MongoDBProvider(IGameServerSettings gameServerSettings, ILogger<MongoDBProvider> logger)
         {
-            DataProviderSettings settings = gameServerSettings.ProviderSettings;
-            _connectionString = $"mongodb://{settings.UserName}:{settings.Password}@{settings.Host}:{settings.Port}/";
+            _settings = gameServerSettings.ProviderSettings;
+            _connectionString = $"mongodb://{_settings.UserName}:{_settings.Password}@{_settings.Host}:{_settings.Port}/";
             _dbClient = new MongoClient(_connectionString);
             Connect();
         }
@@ -35,10 +36,7 @@ namespace GameServer.Data
             InitLoggerDatabase();
         }
 
-        public void Disconnect()
-        {
-
-        }
+        public void Disconnect(){}
         #endregion
 
         #region IDaemonDataProvider
@@ -59,96 +57,87 @@ namespace GameServer.Data
             var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID, id);
 
             var server = await ServerCollection.FindAsync(filter);
-            return await server.FirstAsync();
+            return await server.FirstOrDefaultAsync();
 
         }
 
         public async Task AppendLog(string id, string scriptName, string execID, string targetStream, string message)
         {
-            //var filter = Builders<ServerEntity>.Filter.Eq(server => server.ID , id);
-            
-            var filter = Builders<ServerEntity>.Filter;
-            var serverIdFilter = filter.Eq(x => x.ID, id);
-            // find student with id and course id
-            lock (_ServerLogLock)
-            {
-
-                var ServerLogs = ServerCollection.Find(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName)).SingleOrDefault();
-
-                if (ServerLogs == null)
-                {
-                    var update2 = Builders<ServerEntity>.Update;
-                    var courseLevelSetter2 = update2.AddToSet("Log", new ServerLog() { ScriptName = scriptName});
-                    var res1 = ServerCollection.UpdateOne(serverIdFilter, courseLevelSetter2);
-                }
-            }
-
             lock (_ScriptLogLock)
             {
-                var ScriptLogs = ServerCollection.Find(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName) & filter.Where(x => x.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Any())).SingleOrDefault();
+                var appendQuery = UpdateQuery(scriptName, execID, targetStream, message);
+                var appendFilter = Builders<ServerEntity>.Filter.Eq(server => server.ID, id);
+                var appendUpdate = Builders<ServerEntity>.Update.Pipeline(appendQuery);
 
-                var update1 = Builders<ServerEntity>.Update;
-                UpdateDefinition<ServerEntity> courseLevelSetter1;
-                if (ScriptLogs == null)
-                {
-                    courseLevelSetter1 = update1.AddToSet("Log.$[n].ScriptLogs", new ScriptLog() { ID = execID });
-                    var res2 = ServerCollection.UpdateOne(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter1, new UpdateOptions()
-                    {
-                        ArrayFilters = new List<ArrayFilterDefinition>
-                        {
-                            new JsonArrayFilterDefinition<ServerLog>("{'n.ScriptName': '" + scriptName + "'}"),
-                        }
-                    });
-                   
-                    var courseLevelSetter2 = update1.Set("Log.$[n].ScriptLogs.$[t].StdOut", message);
-                    var res3 = ServerCollection.UpdateOne(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter2, new UpdateOptions() 
-                    { 
-                        ArrayFilters = new List<ArrayFilterDefinition>
-                        {
-                            new JsonArrayFilterDefinition<ServerLog>("{'n.ScriptName': '" + scriptName + "'}"),
-                            new JsonArrayFilterDefinition<ScriptLog>("{'t.ID': '" + execID + "'}")
-                        }
-                    });
+                var result = ServerCollection.UpdateMany(appendFilter, appendUpdate);
+                if (result.ModifiedCount != 0)
+                    return;
 
-                }
-                else
-                {
-                    //var a = ScriptLogs.Log.Where(serverLog => serverLog.ScriptLogs.Where(consoleLog => consoleLog.ID == execID).First().ID == id).Select(p => p.ScriptLogs).First().First();
-                    var logs = ScriptLogs.Log.Where(l => l.ScriptName == scriptName).Select(l => l.ScriptLogs.Where(o => o.ID == execID).Select(o => o.StdOut)).First().First();
-                    //var b = ScriptLogs.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Select(p => p.ScriptLogs).First().First();
-                    var courseLevelSetter2 = update1.Set("Log.$[n].ScriptLogs.$[t].StdOut", logs + message);
-                    var res3 = ServerCollection.UpdateOne(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter2, new UpdateOptions()
-                    {
-                        ArrayFilters = new List<ArrayFilterDefinition>
-                        {
-                            new JsonArrayFilterDefinition<ServerLog>("{'n.ScriptName': '" + scriptName + "'}"),
-                            new JsonArrayFilterDefinition<ScriptLog>("{'t.ID': '" + execID + "'}")
-                        }
-                    });
-                    //if (targetStream == "StandardOut")
-                    //{
-                    //    courseLevelSetter1 = update1.Set("Log.$.ScriptLogs.$.StdOut", ScriptLogs. message );
-                    //}
-                    //else
-                    //{
-                    //    courseLevelSetter1 = update1.AddToSet("Log.$.ScriptLogs.$.StdErr", new ScriptLog() { ID = execID, StdErr = message, StdOut = "" });
-                    //}
-                }
+                InitLogField(id, scriptName, execID, message);
             }
 
-            // update with positional operator
-            //var update = Builders<ServerEntity>.Update;
-            //var courseLevelSetter = update.AddToSet("Log.$.ScriptLogs", new ScriptLog()
-            //{
-            //    ID = execID,
-            //    StdOut = message
-            //});
-            //var res = ServerCollection.UpdateOne(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter);
-            //var update = Builders<ServerEntity>.Update.Pipeline(UpdateQuery(scriptName, execID, targetStream, message));
-
-
-            //var res = await ServerCollection.UpdateOneAsync(studentIdAndCourseIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), update);
         }
+
+        private void InitLogField(string id, string scriptName, string execID, string message)
+        {
+            InitServerLogField(id, scriptName);
+            InitScriptLogField(id, scriptName, execID, message);
+            InitFirstMessage(id, scriptName, execID, message);
+        }
+
+        private void InitServerLogField(string id, string scriptName)
+        {
+            var filter = Builders<ServerEntity>.Filter;
+            var serverIdFilter = filter.Eq(x => x.ID, id);
+
+            var ServerLogs = ServerCollection.Find(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName)).SingleOrDefault();
+
+            if (ServerLogs == null)
+            {
+                var update2 = Builders<ServerEntity>.Update;
+                var courseLevelSetter2 = update2.AddToSet("Log", new ServerLog() { ScriptName = scriptName });
+                var res1 = ServerCollection.UpdateOne(serverIdFilter, courseLevelSetter2);
+            }
+        }
+
+        private void InitScriptLogField(string id, string scriptName, string execID, string message)
+        {
+            var filter = Builders<ServerEntity>.Filter;
+            var update1 = Builders<ServerEntity>.Update;
+            var serverIdFilter = filter.Eq(x => x.ID, id);
+
+            var ScriptLogs = ServerCollection.Find(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName) & filter.Where(x => x.Log.Where(log => log.ScriptLogs.Where(scriptLog => scriptLog.ID == execID).Any()).Any())).SingleOrDefault();
+
+            if (ScriptLogs == null)
+            {
+                var courseLevelSetter = update1.AddToSet("Log.$[n].ScriptLogs", new ScriptLog() { ID = execID });
+                var res = ServerCollection.UpdateOne(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter, new UpdateOptions()
+                {
+                    ArrayFilters = new List<ArrayFilterDefinition>
+                        {
+                            new JsonArrayFilterDefinition<ServerLog>("{'n.ScriptName': '" + scriptName + "'}"),
+                        }
+                });
+            }
+        }
+
+        private void InitFirstMessage(string id, string scriptName, string execID, string message)
+        {
+            var filter = Builders<ServerEntity>.Filter;
+            var serverIdFilter = filter.Eq(x => x.ID, id);
+            var update1 = Builders<ServerEntity>.Update;
+
+            var courseLevelSetter = update1.Set("Log.$[n].ScriptLogs.$[t].StdOut", message);
+            var res = ServerCollection.UpdateOne(serverIdFilter & filter.ElemMatch(x => x.Log, c => c.ScriptName == scriptName), courseLevelSetter, new UpdateOptions()
+            {
+                ArrayFilters = new List<ArrayFilterDefinition>
+                    {
+                        new JsonArrayFilterDefinition<ServerLog>("{'n.ScriptName': '" + scriptName + "'}"),
+                        new JsonArrayFilterDefinition<ScriptLog>("{'t.ID': '" + execID + "'}")
+                    }
+            });
+        }
+
         #endregion
 
         #region ILoggerDataProvider
@@ -169,43 +158,42 @@ namespace GameServer.Data
         {
             Disconnect();
         }
+
         private BsonDocument[] UpdateQuery(string scriptName, string execID, string targetStream, string message)
         {
-            if (targetStream == "StandardOut")
+            var query1 = BsonDocument.Parse(
+                @"
+                    {'$set': 
+                       {'Log': 
+                         {'$map': 
+                           {'input': '$Log',
+                            'as': 'outer',
+                            'in': 
+                             {'$cond': 
+                               [{'$ne': ['$$outer.ScriptName', '" + scriptName + @"']}, '$$outer',
+                                 {'$mergeObjects': 
+                                   ['$$outer',
+                                     {'ScriptLogs': 
+                                       {'$map': 
+                                         {'input': '$$outer.ScriptLogs',
+                                          'as': 'inner',
+                                          'in': 
+                                           {'$cond': 
+                                             [{'$ne': ['$$inner.ID', '" + execID + @"']}, '$$inner',
+                                               {'$mergeObjects': 
+                                                 ['$$inner',
+                                                   {'StdOut': 
+                                                     {'$concat': 
+                                                       ['$$inner.StdOut','" + message + @"']}}]}]}}}}]}]}}}}}
+                ");
+
+            return new BsonDocument[]
             {
-                return new BsonDocument[]
-                {
-                    BsonDocument.Parse(
-                        @"
-                        { 
-                            $set: { 
-                                'Log.$[elem1].ScriptLogs.$[elem2].StdOut': 
-                                { 
-                                    $concat:[ '$Log.$[elem1].ScriptLogs.$[elem2].StdOut', '" + message + @"' ] 
-                                } 
-                            }
-                        }")
-                };
-            }
-            else
-            {
-                return new BsonDocument[]
-                {
-                    BsonDocument.Parse(
-                        @"
-                        { 
-                            $set: { 
-                                'Log.$[elem1].ScriptLogs.$[elem2].StdOut': 
-                                { 
-                                    $concat:[ '$Log.$[elem1].ScriptLogs.$[elem2].StdOut', '" + message + @"' ] 
-                                } 
-                            }
-                        }")
-                };
-            }
+                query1
+            };
         }
 
-        private async void InitLoggerDatabase()
+    private async void InitLoggerDatabase()
         {
             BsonClassMap.RegisterClassMap<DataPoint>(cm =>
             {
@@ -242,7 +230,7 @@ namespace GameServer.Data
                 cm.SetIdMember(cm.GetMemberMap(c => c.ID));
             });
 
-            string serverDatabaseName = "Server";
+            string serverDatabaseName = _settings.DbName;
             string serverCollectionName = "ServerEntitys";
 
             var db = _dbClient.GetDatabase(serverDatabaseName);

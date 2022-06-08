@@ -1,4 +1,5 @@
 ﻿using Docker.DotNet;
+using Docker.DotNet.Models;
 using GameServer.Core.Daemon.Config;
 
 namespace GameServer.Worker
@@ -46,6 +47,16 @@ namespace GameServer.Worker
 
             if (exposedPorts != null && exposedPorts.Count != 0)
                 param.ExposedPorts = exposedPorts;
+
+            client.Images.CreateImageAsync(
+                    new ImagesCreateParameters
+                    {
+                        FromImage = config.Image,
+                        Tag = "latest"
+                    },
+                    null,
+                    new Progress<JSONMessage>((m) => { }),
+                    default).Wait();
 
             var containerInfo = client.Containers.CreateContainerAsync(param).Result;
 

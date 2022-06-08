@@ -1,6 +1,7 @@
 ﻿using Docker.DotNet;
 using GameServer.Core.Daemon;
 using GameServer.Core.Daemon.Config;
+using GameServer.Core.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,9 +20,10 @@ namespace GameServer.Worker
         public IList<string> Names { get; set; }
         public event IServer.NewOutHandler NewOutStreamMessage;
         private DockerClient Client { get; }
-
+        private Dictionary<string, string> IdNameMapping = new Dictionary<string, string>();
         private IOCache ioCache { get; } = new IOCache();
-        private Dictionary<string, MultiplexedStream> StdIn = new Dictionary<string, MultiplexedStream>();
+        private IOWrapper StdIn = new IOWrapper();
+        private PerformanceLeakFinder IOLogger = new PerformanceLeakFinder("IOCache"); 
         public DockerContainer(DockerClient client, string id, List<string>? env)
         {
             Client = client;
@@ -32,6 +34,13 @@ namespace GameServer.Worker
             ImageID = container.ImageID;
             Names = container.Names;
             NewOutStreamMessage += OnOutStreamMessage;
+            StdIn.UpdatedIO += (s, o) =>
+            {
+                if (IdNameMapping.TryGetValue(o.ExecID, out var name))
+                {
+                    NewOutStreamMessage.Invoke(this, new OutEventArgs(o.Message, o.Target, o.ExecID, name, o.Type));
+                }
+            };
         }
 
         public async Task Start()
@@ -42,10 +51,8 @@ namespace GameServer.Worker
 
         public async Task Stop()
         {
-            foreach(var stdIn in StdIn.Keys)
-            {
-                NewOutStreamMessage.Invoke(this, new OutEventArgs("", "None", stdIn, "", "closed"));
-            }
+            await StdIn.RemoveAll();
+            
             ioCache.Clear();
             await Client.Containers.StopContainerAsync(ID, new Docker.DotNet.Models.ContainerStopParameters());
         }
@@ -135,23 +142,14 @@ namespace GameServer.Worker
             var token = new CancellationTokenSource();
             var stream = await Client.Exec.StartAndAttachContainerExecAsync(exec.ID, true, token.Token);
 
-            var buffer = new byte[1];
-            MultiplexedStream.ReadResult res;
-            StdIn.Add(exec.ID, stream);
-            do
-            {
-                res = await stream.ReadOutputAsync(buffer, 0, 1, token.Token);
-
-                if (res.Count != 0)
-                    NewOutStreamMessage.Invoke(this, new OutEventArgs(System.Text.Encoding.Default.GetString(buffer), res.Target.ToString(), exec.ID, name, "message"));
-            } while (!res.EOF);
-
-            NewOutStreamMessage.Invoke(this, new OutEventArgs("", "None", exec.ID, name, "closed"));
-            StdIn.Remove(exec.ID);
+            IdNameMapping.Add(exec.ID, name);
+            await StdIn.Add(exec.ID, stream);
+            await StdIn.Remove(exec.ID);
         }
 
         private void OnOutStreamMessage(object sender, OutEventArgs e)
         {
+            IOLogger.Start();
             if (e.Type == "closed")
             {
                 ioCache.Remove(e.ExecID, e.ScriptName);
@@ -160,6 +158,7 @@ namespace GameServer.Worker
             {
                 ioCache.Add(e.ExecID, e.ScriptName, e.Target, e.Message);
             }
+            IOLogger.Stop();
         }
 
         public void Dispose()
