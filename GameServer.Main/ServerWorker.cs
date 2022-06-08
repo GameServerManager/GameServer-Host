@@ -18,7 +18,7 @@ namespace GameServer.Main
         private readonly Dictionary<string, Action<string[]>> _commandMap;
         public bool Running { get; private set; } = true;
         public CommandQueue CommandQueue { get; }
-        private readonly MongoDBProvider _dataProvider;
+        private readonly MongoDbProvider _dataProvider;
         private readonly IDaemonWorker _daemonWorker;
         private readonly IPerformanceLogger _performanceLogger;
 
@@ -52,7 +52,7 @@ namespace GameServer.Main
             });
 
 
-            _dataProvider = new MongoDBProvider(settings, loggerFactory.CreateLogger<MongoDBProvider>());
+            _dataProvider = new MongoDbProvider(settings, loggerFactory.CreateLogger<MongoDbProvider>());
             _daemonWorker = new DockerWorker(settings, _dataProvider, loggerFactory.CreateLogger<DockerWorker>());
             _performanceLogger = new PerformanceLogger(settings, _dataProvider, loggerFactory.CreateLogger<PerformanceLogger>());
         }

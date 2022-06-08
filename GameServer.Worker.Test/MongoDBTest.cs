@@ -26,10 +26,10 @@ namespace GameServer.Test
         [ClassInitialize]
         public static void InitDatabase(TestContext ctx)
         {
-            var mock = new Mock<ILogger<MongoDBProvider>>();
-            ILogger<MongoDBProvider> logger = mock.Object;
+            var mock = new Mock<ILogger<MongoDbProvider>>();
+            ILogger<MongoDbProvider> logger = mock.Object;
 
-            logger = Mock.Of<ILogger<MongoDBProvider>>();
+            logger = Mock.Of<ILogger<MongoDbProvider>>();
 
             _dBProvider = new MongoDBProviderTestWrapper(new GameServerSettings()
             {

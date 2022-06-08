@@ -14,8 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<IGameServerSettings>((s) => GameServerSettings.FromFile(@".\config.yml"));
-builder.Services.AddSingleton<IDaemonDataProvider, MongoDBProvider>();
-builder.Services.AddSingleton<ILoggerDataProvider, MongoDBProvider>();
+builder.Services.AddSingleton<IDaemonDataProvider, MongoDbProvider>();
+builder.Services.AddSingleton<ILoggerDataProvider, MongoDbProvider>();
 builder.Services.AddSingleton<IDaemonWorker, DockerWorker>();
 builder.Services.AddSingleton<IPerformanceLogger, PerformanceLogger>();
 builder.Services.AddGrpc();
