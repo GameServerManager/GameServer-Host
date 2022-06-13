@@ -15,7 +15,7 @@ namespace GameServer.Worker
 {
     public class DockerWorker : IDaemonWorker
     {
-        readonly Dictionary<string, DockerContainer> ContainerCache = new();
+        readonly Dictionary<string?, DockerContainer> ContainerCache = new();
         private readonly DockerClient client;
         private readonly ILogger<DockerWorker> _logger;
         private PerformanceLeakFinder AttachLogger = new PerformanceLeakFinder("Attach");
@@ -34,7 +34,7 @@ namespace GameServer.Worker
             _ = InitCache(settings.ContainerSettings);
         }
 
-        public async Task<IServer> GetServer(string id)
+        public async Task<IServer> GetServer(string? id)
         {
             _logger.LogDebug($"Getting Server {id}");
             if (ContainerCache.TryGetValue(id, out var container))
@@ -43,7 +43,7 @@ namespace GameServer.Worker
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 
-        public async Task<ServerStatus> GetServerStatus(string id)
+        public async Task<ServerStatus> GetServerStatus(string? id)
         {
             _logger.LogDebug($"Getting Server Status {id}");
             if (ContainerCache.TryGetValue(id, out var container))
@@ -52,7 +52,7 @@ namespace GameServer.Worker
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 
-        public async Task<string> ImportServer(ServerConfig config)
+        public async Task<string?> ImportServer(ServerConfig config)
         {
             _logger.LogDebug($"Import Server");
             var warnings = DockerContainer.FromConfig(client, config, out var container);
@@ -72,7 +72,7 @@ namespace GameServer.Worker
             return container.ID;
         }
 
-        public async Task StartServer(string id)
+        public async Task StartServer(string? id)
         {
             _logger.LogDebug($"Starting Server {id}");
 
@@ -87,7 +87,7 @@ namespace GameServer.Worker
             return containers;
         }
 
-        public async Task StopServer(string id)
+        public async Task StopServer(string? id)
         {
             _logger.LogDebug($"Stopping Server {id}");
 
@@ -95,7 +95,7 @@ namespace GameServer.Worker
                 await container.Stop();
         }
 
-        public async Task<Dictionary<string, Dictionary<string, (string stderr, string stdout)>>> GetServerLogs(string id)
+        public async Task<Dictionary<string, Dictionary<string, (string stderr, string stdout)>>> GetServerLogs(string? id)
         {
             _logger.LogDebug($"Server Logs {id}:");
 
@@ -125,7 +125,7 @@ namespace GameServer.Worker
             throw new DockerContainerNotFoundException(System.Net.HttpStatusCode.NotFound, string.Empty);
         }
 
-        public async Task Update(string id)
+        public async Task Update(string? id)
         {
             _logger.LogDebug($"Updating Server {id}:");
 
@@ -133,7 +133,7 @@ namespace GameServer.Worker
                 await container.Update();
         }
 
-        public void AttachServer(string id, Action<string, string, OutEventArgs.TargetStream, string, string> callback)
+        public void AttachServer(string? id, Action<string, string, OutEventArgs.TargetStream, string, string> callback)
         {
             _logger.LogDebug($"Attatched Server {id}:");
 
@@ -143,19 +143,19 @@ namespace GameServer.Worker
             container.NewOutStreamMessage += (s, e) =>
             {
                 AttachLogger.Start();
-                callback(e.ExecID, e.ScriptName, e.Target, e.Message, e.Type);
+                callback(e.ExecId, e.ScriptName, e.Target, e.Message, e.Type);
                 AttachLogger.Stop();
             };
         }
 
-        private async Task InitCache(ContainerSettings settings)
+        private async Task InitCache(ContainerSettings? settings)
         {
             var containerRequest = await client.Containers.ListContainersAsync(new Docker.DotNet.Models.ContainersListParameters()
             {
                 All = true
             });
 
-            var dbContainers = (await DataProvider.GetAllServerID()).ToList();
+            var dbContainers = (await DataProvider.GetAllServerId()).ToList();
 
             List<Task> pool = new();
             _logger.LogDebug($"Init Cache");
@@ -164,7 +164,7 @@ namespace GameServer.Worker
 
             for (int i = 0; i < containerRequest.Count; i++)
             {
-                string id = containerRequest[i].ID;
+                string? id = containerRequest[i].ID;
                 if (!dbContainers.Remove(id))
                 {
                     _logger.LogWarning($"Not in Database: {id}");
@@ -189,7 +189,7 @@ namespace GameServer.Worker
             var s = sender as IServer;
             MongoDBLogger.Start();
 
-            DataProvider.AppendLog(s.ID,e.ScriptName, e.ExecID, e.Target.ToString(), e.Message);
+            DataProvider.AppendLog(s.ID,e.ScriptName, e.ExecId, e.Target.ToString(), e.Message);
             MongoDBLogger.Stop();
         }
 
@@ -203,7 +203,7 @@ namespace GameServer.Worker
             }
         }
 
-        public async Task SendCommand(string containerID, string execId, string command)
+        public async Task SendCommand(string? containerID, string execId, string command)
         {
             _logger.LogDebug($"Updating Server {containerID}:");
 

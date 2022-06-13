@@ -7,9 +7,9 @@
 
         public Command(string command)
         {
-            bool escaped = false;
-            bool ignoreSpace = false;
-            string buffer = "";
+            var escaped = false;
+            var ignoreSpace = false;
+            var buffer = "";
             List<string> bufferArgs = new();
 
             foreach (var character in command)

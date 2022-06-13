@@ -6,6 +6,6 @@ namespace GameServer.Core.Settings
     {
         [DefaultValue(true)]
         public string DaemonTest { get; set; } = "testDaemon";
-        public ContainerSettings ContainerSettings { get; set; }
+        public ContainerSettings? ContainerSettings { get; set; }
     }
 }

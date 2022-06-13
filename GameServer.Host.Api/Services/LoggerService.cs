@@ -26,9 +26,9 @@ namespace GameServer.Host.Api.Services
                 result.History_.Add(new DataPoint() {
                     CPU = new CpuStats()
                     {
-                        CpuDelta = (long) point.CPU.CpuDelta,
-                        NumberCpus = (long)point.CPU.NumberCpus,
-                        SystemCpuDelta = (long)point.CPU.SystemCpuDelta
+                        CpuDelta = (long) point.Cpu.CpuDelta,
+                        NumberCpus = (long)point.Cpu.NumberCpus,
+                        SystemCpuDelta = (long)point.Cpu.SystemCpuDelta
                     },
                     Disk = new DiskStats()
                     {
@@ -39,8 +39,8 @@ namespace GameServer.Host.Api.Services
                     },
                     RAM = new MemoryStats()
                     {
-                        AvailableMemory = (long)point.RAM.AvailableMemory,
-                        UsedMemory = (long)point.RAM.UsedMemory,
+                        AvailableMemory = (long)point.Ram.AvailableMemory,
+                        UsedMemory = (long)point.Ram.UsedMemory,
                     },
                     Time = point.Time.Ticks
                 });

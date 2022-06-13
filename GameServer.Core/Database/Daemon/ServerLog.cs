@@ -2,7 +2,7 @@
 {
     public class ServerLog
     {
-        public string ScriptName { get; set; }
+        public string? ScriptName { get; set; }
         public ScriptLog[] ScriptLogs { get; set; } = Array.Empty<ScriptLog>();
     }
 }

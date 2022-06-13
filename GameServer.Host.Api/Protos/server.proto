@@ -25,7 +25,7 @@ message ServerRequest{
 message ImportRequest{
 	string Name = 1;
 	string Comment = 2;
-	string Discription = 3;
+	string Description = 3;
 	string Image = 4;
 	repeated MountingPoint Mounts = 5;
 	repeated PortMap Ports = 6;
@@ -48,7 +48,7 @@ message PortMap{
 }
 
 message ServerScripts{
-	Script InstalationScript = 1; 
+	Script InstallationScript = 1; 
 	Script StartScript = 2;
 	Script UpdateScript = 3;
 }

@@ -10,7 +10,7 @@ namespace GameServer.Logger
 {
     public class PerformanceLogger : IPerformanceLogger
     {
-        private readonly LoggingSettings loggingSettings;
+        private readonly LoggingSettings? loggingSettings;
         private readonly ILoggerDataProvider dataProvider;
         private readonly Dictionary<string, CancellationTokenSource> StatToken = new();
         private readonly Dictionary<string, DateTime> LastUpdate = new();
@@ -55,13 +55,13 @@ namespace GameServer.Logger
             var point = new DataPoint()
             {
                 Time = res.Read,
-                CPU = new()
+                Cpu = new()
                 {
                     CpuDelta = cpuDelta,
                     SystemCpuDelta = systemCpuDelta,
                     NumberCpus = numberCpus
                 },
-                RAM = new()
+                Ram = new()
                 {
                     UsedMemory = usedMemory,
                     AvailableMemory = availableMemory

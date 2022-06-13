@@ -16,12 +16,12 @@ namespace GameServer.Worker
 
             ProcessScripts(config);
 
-            var labels = new Dictionary<string, string>()
+            var labels = new Dictionary<string, string?>()
             {
                 { "GameServerManaged", "True"},
                 { "GameServer.Name", config.Name},
                 { "GameServer.Comment", config.Comment},
-                { "GameServer.Discription", config.Discription},
+                { "GameServer.Description", config.Description},
             };
 
             var param = new Docker.DotNet.Models.CreateContainerParameters()
@@ -64,7 +64,7 @@ namespace GameServer.Worker
             return containerInfo.Warnings;
         }
 
-        private static Docker.DotNet.Models.HostConfig ConvertHostConfig(List<string> binds, Dictionary<string, IList<Docker.DotNet.Models.PortBinding>> ports)
+        private static Docker.DotNet.Models.HostConfig ConvertHostConfig(List<string> binds, Dictionary<string?, IList<PortBinding>> ports)
         {
             var hostConfig = new Docker.DotNet.Models.HostConfig()
             {
@@ -81,9 +81,9 @@ namespace GameServer.Worker
             return hostConfig;
         }
 
-        private static IDictionary<string, Docker.DotNet.Models.EmptyStruct> ConvertExposedPortsConfig(PortMap[] configPorts)
+        private static IDictionary<string?, EmptyStruct> ConvertExposedPortsConfig(PortMap[]? configPorts)
         {
-            Dictionary<string, Docker.DotNet.Models.EmptyStruct> ports = new();
+            Dictionary<string?, EmptyStruct> ports = new();
 
             foreach (var port in configPorts)
                 ports.Add(port.ServerPort, new Docker.DotNet.Models.EmptyStruct());
@@ -95,10 +95,10 @@ namespace GameServer.Worker
         {
             GenerateScript(config.ContainerScripts.StartScript, "StartScript", config.Name);
             GenerateScript(config.ContainerScripts.UpdateScript, "UpdateScript", config.Name);
-            GenerateScript(config.ContainerScripts.InstalationScript, "InstalationScript", config.Name);
+            GenerateScript(config.ContainerScripts.InstallationScript, "InstallationScript", config.Name);
         }
 
-        private static void GenerateScript(Script script, string scriptName, string contianerName)
+        private static void GenerateScript(Script? script, string scriptName, string? contianerName)
         {
             string envVar = GetServerRootPath();
 
@@ -169,9 +169,9 @@ namespace GameServer.Worker
             return env;
         }
 
-        private static Dictionary<string, IList<Docker.DotNet.Models.PortBinding>> ConvertPortConfig(PortMap[] configPorts)
+        private static Dictionary<string?, IList<PortBinding>> ConvertPortConfig(PortMap[]? configPorts)
         {
-            Dictionary<string, IList<Docker.DotNet.Models.PortBinding>> ports = new();
+            Dictionary<string?, IList<PortBinding>> ports = new();
 
             foreach (var port in configPorts)
             {

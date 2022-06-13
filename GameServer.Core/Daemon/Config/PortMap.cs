@@ -2,7 +2,7 @@
 {
     public class PortMap
     {
-        public string[] HostPorts { get; set; }
-        public string ServerPort { get; set; }
+        public string[]? HostPorts { get; set; }
+        public string? ServerPort { get; set; }
     }
 }

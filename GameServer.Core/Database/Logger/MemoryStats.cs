@@ -4,6 +4,6 @@
     {
         public ulong UsedMemory { get; set; }
         public ulong AvailableMemory { get; set; }
-        public double MemoryUsage { get => (UsedMemory / AvailableMemory) * 100.0; }
+        public double MemoryUsage => UsedMemory / AvailableMemory * 100.0;
     }
 }

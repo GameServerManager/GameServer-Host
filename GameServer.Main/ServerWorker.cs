@@ -71,7 +71,7 @@ namespace GameServer.Main
             _dataProvider.Connect();
         }
 
-        private async void Server(string[] args)
+        private async void Server(string?[] args)
         {
             if (args.Length != 1)
             {
@@ -106,7 +106,7 @@ namespace GameServer.Main
             }
         }
 
-        private async void Start(string[] args)
+        private async void Start(string?[] args)
         {
             if (args.Length != 1)
             {
@@ -117,7 +117,7 @@ namespace GameServer.Main
             await _daemonWorker.StartServer(args[0]);
         }
 
-        private async void Stop(string[] args)
+        private async void Stop(string?[] args)
         {
             if (args.Length != 1)
             {
@@ -128,7 +128,7 @@ namespace GameServer.Main
             await _daemonWorker.StopServer(args[0]);
         }
 
-        private async void Update(string[] args)
+        private async void Update(string?[] args)
         {
             if (args.Length != 1)
             {
@@ -139,7 +139,7 @@ namespace GameServer.Main
             await _daemonWorker.Update(args[0]);
         }
 
-        private async void ServerLog(string[] args)
+        private async void ServerLog(string?[] args)
         {
             if (args.Length != 1)
             {
@@ -152,7 +152,7 @@ namespace GameServer.Main
             Console.WriteLine(logs);
         }
 
-        private void Attach(string[] args)
+        private void Attach(string?[] args)
         {
             if (args.Length != 1)
             {
@@ -220,7 +220,7 @@ namespace GameServer.Main
             Console.WriteLine($"[log] Timestamp | CPU | Ram");
             foreach (var data in history)
             {
-                Console.WriteLine($"[log]{data.Time} | {data.CPU.CpuUsage} | {data.RAM.MemoryUsage}");
+                Console.WriteLine($"[log]{data.Time} | {data.Cpu.CpuUsage} | {data.Ram.MemoryUsage}");
             }
         }
 

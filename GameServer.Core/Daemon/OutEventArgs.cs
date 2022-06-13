@@ -10,15 +10,15 @@
             None 
         }
 
-        public OutEventArgs(string message, string targetStream, string execID, string scriptName, string type) { 
+        public OutEventArgs(string message, string targetStream, string execId, string scriptName, string type) { 
             Message = message;
             Target = (TargetStream) Enum.Parse(typeof(TargetStream), targetStream);
-            ExecID = execID;
+            ExecId = execId;
             ScriptName = scriptName;
             Type = type;
         }
         public string Message { get; }
-        public string ExecID { get; }
+        public string ExecId { get; }
         public string ScriptName { get; }
         public string Type { get; }
         public TargetStream Target{ get; } 

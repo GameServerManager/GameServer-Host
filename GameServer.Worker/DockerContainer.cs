@@ -13,18 +13,18 @@ namespace GameServer.Worker
 {
     public partial class DockerContainer : IServer, IDisposable
     {
-        public string ID { get; }
+        public string? ID { get; }
         public List<string>? Env { get; }
         public string ImageID { get; set; }
         public string Image { get; set; }
-        public IList<string> Names { get; set; }
+        public IList<string?> Names { get; set; }
         public event IServer.NewOutHandler NewOutStreamMessage;
         private DockerClient Client { get; }
         private Dictionary<string, string> IdNameMapping = new Dictionary<string, string>();
         private IOCache ioCache { get; } = new IOCache();
         private IOWrapper StdIn = new IOWrapper();
         private PerformanceLeakFinder IOLogger = new PerformanceLeakFinder("IOCache"); 
-        public DockerContainer(DockerClient client, string id, List<string>? env)
+        public DockerContainer(DockerClient client, string? id, List<string>? env)
         {
             Client = client;
             ID = id;
@@ -74,14 +74,14 @@ namespace GameServer.Worker
             {
                 Filters = new Dictionary<string, IDictionary<string, bool>>
                 {
-                    { "id", new Dictionary<string, bool>{ { ID, true} } }
+                    { "id", new Dictionary<string?, bool> { { ID, true} } }
                 },
                 All = true
             });
             return containerList.First();
         }
 
-        public async Task Exec(Script script, string name)
+        public async Task Exec(Script? script, string name)
         {
             if (name is null)
                 name = Guid.NewGuid().ToString();
@@ -93,7 +93,7 @@ namespace GameServer.Worker
         public async Task Install()
         {
             await Client.Containers.StartContainerAsync(ID, new Docker.DotNet.Models.ContainerStartParameters());
-            await ExecFromName("InstalationScript");
+            await ExecFromName("InstallationScript");
         }
 
         public async Task Update()
@@ -152,11 +152,11 @@ namespace GameServer.Worker
             IOLogger.Start();
             if (e.Type == "closed")
             {
-                ioCache.Remove(e.ExecID, e.ScriptName);
+                ioCache.Remove(e.ExecId, e.ScriptName);
             }
             else if (e.Type == "message")
             {
-                ioCache.Add(e.ExecID, e.ScriptName, e.Target, e.Message);
+                ioCache.Add(e.ExecId, e.ScriptName, e.Target, e.Message);
             }
             IOLogger.Stop();
         }

@@ -17,8 +17,9 @@ namespace GameServer.Test
     [TestClass]
     public class MongoDBTest
     {
-        static MongoDBProviderTestWrapper _dBProvider;
-        string[] ServerIDs = new[] { 
+        private static MongoDbProviderTestWrapper? _dBProvider;
+
+        private readonly string?[] _serverIDs = { 
             Guid.NewGuid().ToString(),
             Guid.NewGuid().ToString()
         };
@@ -31,12 +32,10 @@ namespace GameServer.Test
 
             logger = Mock.Of<ILogger<MongoDbProvider>>();
 
-            _dBProvider = new MongoDBProviderTestWrapper(new GameServerSettings()
+            _dBProvider = new MongoDbProviderTestWrapper(new GameServerSettings()
             {
                 ProviderSettings = new DataProviderSettings()
                 {
-                    UserName = "root",
-                    Password = "example",
                     DbName = "ServerTest"
                 }
             }, logger);
@@ -45,18 +44,18 @@ namespace GameServer.Test
         [TestInitialize]
         public async Task FillDatabase()
         {
-            List<ServerEntity> initDBValues = new();
+            List<ServerEntity> initDbValues = new();
 
-            foreach (var id in ServerIDs)
+            foreach (var id in _serverIDs)
             {
-                initDBValues.Add(new ServerEntity(id)
+                initDbValues.Add(new ServerEntity(id)
                 {
-                    Config = new Core.Daemon.Config.ServerConfig()
+                    Config = new ServerConfig()
                     {
                         Comment = "TestComment",
                         ContainerScripts = new ServerScripts()
                         {
-                            InstalationScript = new Script()
+                            InstallationScript = new Script()
                             {
                                 Entrypoint = "bash",
                                 ScriptCommand = "echo hi"
@@ -73,7 +72,7 @@ namespace GameServer.Test
                             }
                         },
                         Variables = Array.Empty<Variable>(),
-                        Discription = "TestDiscription",
+                        Description = "TestDiscription",
                         Image = "Debian",
                         Mounts = Array.Empty<MountingPoint>(),
                         Ports = Array.Empty<PortMap>(),
@@ -81,7 +80,7 @@ namespace GameServer.Test
                     }
                 });
             }
-            await _dBProvider.FillDatabase(initDBValues);
+            await _dBProvider.FillDatabase(initDbValues);
         }
 
         [TestCleanup]
@@ -92,30 +91,30 @@ namespace GameServer.Test
         }
 
         [TestMethod]
-        public async Task GetAllServerIDTest()
+        public async Task GetAllServerIdTest()
         {
-            var ids = await _dBProvider.GetAllServerID();
-            Assert.AreEqual(ids.ToArray().Length, ServerIDs.Length);
+            var ids = await _dBProvider.GetAllServerId();
+            Assert.AreEqual(ids.ToArray().Length, _serverIDs.Length);
 
             foreach (var id in ids)
             {
-                Assert.IsTrue(ServerIDs.Contains(id));
+                Assert.IsTrue(_serverIDs.Contains(id));
             }
         }
 
         [TestMethod]
-        public async Task ServerByIDTest()
+        public async Task ServerByIdTest()
         {
-            var server = await _dBProvider.ServerByID(ServerIDs[0]);
+            var server = await _dBProvider.ServerById(_serverIDs[0]);
 
-            Assert.AreEqual(server.ID, ServerIDs[0]);
-            Assert.AreEqual(server.Config?.Name, ServerIDs[0]);
+            Assert.AreEqual(server.Id, _serverIDs[0]);
+            Assert.AreEqual(server.Config?.Name, _serverIDs[0]);
         }
 
         [TestMethod]
-        public async Task ServerByNonExistingIDTest()
+        public async Task ServerByNonExistingIdTest()
         {
-            var server = await _dBProvider.ServerByID(Guid.NewGuid().ToString());
+            var server = await _dBProvider.ServerById(Guid.NewGuid().ToString());
             Assert.AreEqual(server, null);
         }
 
@@ -123,10 +122,9 @@ namespace GameServer.Test
         public async Task SaveServerTest()
         {
             var id = Guid.NewGuid().ToString();
-            var name = id;
-            var comment = "TestComment";
-            var des = "TestDiscription";
-            var img = "Debian";
+            const string comment = "TestComment";
+            const string des = "TestDiscription";
+            const string img = "Debian";
 
             var server = new ServerEntity(id)
             {
@@ -135,7 +133,7 @@ namespace GameServer.Test
                     Comment = comment,
                     ContainerScripts = new ServerScripts()
                     {
-                        InstalationScript = new Script()
+                        InstallationScript = new Script()
                         {
                             Entrypoint = "bash",
                             ScriptCommand = "echo hi"
@@ -152,7 +150,7 @@ namespace GameServer.Test
                         }
                     },
                     Variables = Array.Empty<Variable>(),
-                    Discription = des,
+                    Description = des,
                     Image = img,
                     Mounts = Array.Empty<MountingPoint>(),
                     Ports = Array.Empty<PortMap>(),
@@ -161,22 +159,22 @@ namespace GameServer.Test
             };
             await _dBProvider.SaveServer(server);
 
-            var serverFromDB = await _dBProvider.ServerByID(id);
+            var serverFromDb = await _dBProvider.ServerById(id);
 
-            Assert.AreEqual(serverFromDB.ID, id);
-            Assert.AreEqual(serverFromDB.Config?.Name, id);
-            Assert.AreEqual(serverFromDB.Config?.Comment, comment);
-            Assert.AreEqual(serverFromDB.Config?.Discription, des);
-            Assert.AreEqual(serverFromDB.Config?.Image, img);
+            Assert.AreEqual(serverFromDb.Id, id);
+            Assert.AreEqual(serverFromDb.Config?.Name, id);
+            Assert.AreEqual(serverFromDb.Config?.Comment, comment);
+            Assert.AreEqual(serverFromDb.Config?.Description, des);
+            Assert.AreEqual(serverFromDb.Config?.Image, img);
         }
 
         [TestMethod]
         public async Task AppendLogTest()
         {
-            var id = ServerIDs[0];
-            var scriptName = "AppendTest";
-            var target = "StandardOut";
-            var text = "Aenean eu neque eget ex ultricies auctor. Aliquam eget eleifend massa, non tincidunt erat. Etiam sit amet leo justo. Curabitur vestibulum congue turpis in vestibulum. Donec nec iaculis neque, et semper dui. Ut interdum leo a accumsan feugiat. Aenean convallis ornare nunc, ac blandit mi fermentum id. Sed iaculis, mi sit amet imperdiet fermentum, ipsum sapien laoreet augue, non imperdiet sem neque sed nisi. Praesent ac eros in erat suscipit dictum. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Vivamus id urna in est finibus volutpat sed eget lorem.";
+            var id = _serverIDs[0];
+            const string scriptName = "AppendTest";
+            const string target = "StandardOut";
+            const string text = "Aenean eu neque eget ex ultricies auctor. Aliquam eget eleifend massa, non tincidunt erat. Etiam sit amet leo justo. Curabitur vestibulum congue turpis in vestibulum. Donec nec iaculis neque, et semper dui. Ut interdum leo a accumsan feugiat. Aenean convallis ornare nunc, ac blandit mi fermentum id. Sed iaculis, mi sit amet imperdiet fermentum, ipsum sapien laoreet augue, non imperdiet sem neque sed nisi. Praesent ac eros in erat suscipit dictum. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Vivamus id urna in est finibus volutpat sed eget lorem.";
             var splitText = text.Split(" ");
             var validationText = "";
             var newAppendGuid = Guid.NewGuid().ToString();
@@ -187,10 +185,10 @@ namespace GameServer.Test
                 validationText += word + " ";
             }
 
-            var server = await _dBProvider.ServerByID(id);
-            var selectedLog = server.Log.Where(e => e.ScriptName == scriptName).First().ScriptLogs;
+            var server = await _dBProvider.ServerById(id);
+            var selectedLog = server.Log.First(e => e.ScriptName == scriptName).ScriptLogs;
 
-            var newOut = selectedLog.Where(e => e.ID == newAppendGuid).First();
+            var newOut = selectedLog.First(e => e.Id == newAppendGuid);
             Assert.AreEqual(validationText, newOut.StdOut);
         }
     }

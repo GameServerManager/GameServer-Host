@@ -79,7 +79,7 @@ namespace GameServer.Host.Api.Services
 
         public async override Task<Logs> GetLog(LogRequest request, ServerCallContext context)
         {
-            var server = await _daemonDataProvider.ServerByID(request.Id);
+            var server = await _daemonDataProvider.ServerById(request.Id);
             var log = server.Log;
             var logs = new Api.Logs();
 
@@ -93,7 +93,7 @@ namespace GameServer.Host.Api.Services
                 {
                     serverLogs.ScriptLogs.Add(new ScriptLog()
                     {
-                        ExecID = OutputByID.ID,
+                        ExecID = OutputByID.Id,
                         Stderr = OutputByID.StdErr,
                         StdOut = OutputByID.StdOut
                     });
@@ -137,10 +137,10 @@ namespace GameServer.Host.Api.Services
                 Comment = request.Comment,
                 ContainerScripts = new()
                 {
-                    InstalationScript = new()
+                    InstallationScript = new()
                     {
-                        Entrypoint = request.ContainerScripts.InstalationScript.Entrypoint,
-                        ScriptCommand = request.ContainerScripts.InstalationScript.ScriptCommand
+                        Entrypoint = request.ContainerScripts.InstallationScript.Entrypoint,
+                        ScriptCommand = request.ContainerScripts.InstallationScript.ScriptCommand
                     },
                     StartScript = new()
                     {
@@ -153,7 +153,7 @@ namespace GameServer.Host.Api.Services
                         ScriptCommand = request.ContainerScripts.UpdateScript.ScriptCommand
                     },
                 },
-                Discription = request.Discription,
+                Description = request.Description,
                 Image = request.Image,
                 Name = request.Name,
             };

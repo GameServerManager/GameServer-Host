@@ -6,25 +6,25 @@ using System;
 
 namespace GameServer.Data
 {
-    public class MongoDBProviderTestWrapper : MongoDbProvider
+    public class MongoDbProviderTestWrapper : MongoDbProvider
     {
-        public MongoDBProviderTestWrapper(IGameServerSettings gameServerSettings, ILogger<MongoDbProvider> logger) : base(gameServerSettings, logger)
+        public MongoDbProviderTestWrapper(IGameServerSettings gameServerSettings, ILogger<MongoDbProvider> logger) : base(gameServerSettings, logger)
         {}
 
         public async Task Delete()
         {
-            await DbClient.DropDatabaseAsync(Settings.DbName);
+            await DbClient.DropDatabaseAsync(Settings?.DbName);
         }
 
         public async Task ClearDatabase()
         {
-            var db = DbClient.GetDatabase(Settings.DbName);
+            var db = DbClient.GetDatabase(Settings?.DbName);
             await db.DropCollectionAsync("ServerEntitys");
         }
 
-        public async Task FillDatabase(List<ServerEntity> initDBValues)
+        public async Task FillDatabase(List<ServerEntity> initDbValues)
         {
-            foreach (var server in initDBValues)
+            foreach (var server in initDbValues)
             {
                 await SaveServer(server);
             }

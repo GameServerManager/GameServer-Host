@@ -5,9 +5,9 @@ namespace GameServer.Core.Settings
 {
     public class GameServerSettings : IGameServerSettings
     {
-        public DataProviderSettings ProviderSettings { get; set; }
-        public LoggingSettings LoggingSettings { get; set; }
-        public DaemonSettings DaemonSettings { get; set; }
+        public DataProviderSettings? ProviderSettings { get; set; }
+        public LoggingSettings? LoggingSettings { get; set; }
+        public DaemonSettings? DaemonSettings { get; set; }
 
         public static GameServerSettings FromFile(string path)
         {

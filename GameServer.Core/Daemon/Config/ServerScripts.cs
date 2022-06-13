@@ -6,12 +6,12 @@ namespace GameServer.Core.Daemon.Config
     {
 
         [DefaultValue(true)]
-        public Script InstalationScript { get; set; } = null;
+        public Script? InstallationScript { get; set; }
 
         [DefaultValue(true)]
-        public Script StartScript { get; set; } = null;
+        public Script? StartScript { get; set; }
 
         [DefaultValue(true)]
-        public Script UpdateScript { get; set; } = null;
+        public Script? UpdateScript { get; set; }
     }
 }
